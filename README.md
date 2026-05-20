@@ -9,7 +9,7 @@
 
 **Genre:** Top-Down Action Shooter
 **Players:** 1 (Single-player) *(co-op as stretch goal)*
-**Engine:** Unreal Engine 5 *(Blueprint-first; C++ on performance-critical paths)*
+**Engine:** Unreal Engine 5.7.4
 **Platforms:** PC
 
 A classified bioengineering experiment has triggered a catastrophic outbreak in a sealed city. The infection mutates organic matter into aggressive, rapidly evolving entities.
