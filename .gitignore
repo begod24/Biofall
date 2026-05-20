@@ -30,24 +30,13 @@
 *.VC.opendb
 .vsconfig
 
-SourceArt/**/*.png
-SourceArt/**/*.tga
-
-Binaries/*
-Plugins/**/Binaries/*
-
-Build/*
-!Build/*/
-Build/*/**
-!Build/*/PakBlacklist*.txt
-!Build/**/*.ico
+Binaries/
+Build/
+Saved/
+Intermediate/
+DerivedDataCache/
 
 *_BuiltData.uasset
-
-Saved/*
-Intermediate/*
-Plugins/**/Intermediate/*
-DerivedDataCache/*
 
 .DS_Store
 Thumbs.db
