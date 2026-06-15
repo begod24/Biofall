@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew install *)",
+      "Bash(pdftotext -v)",
+      "Bash(pdftotext \"/Users/bekbolataldiyarov/Downloads/Biofall_GDD_Unity64_MVP_Architecture_EN_v1.pdf\" /tmp/biofall_gdd.txt)",
+      "Read(//tmp/**)",
+      "mcp__unity-mcp__Unity_ManageEditor",
+      "mcp__unity-mcp__Unity_ManageScene",
+      "mcp__unity-mcp__Unity_ReadConsole",
+      "mcp__unity-mcp__Unity_GetConsoleLogs",
+      "mcp__unity-mcp__Unity_FindProjectAssets",
+      "mcp__unity-mcp__Unity_Grep",
+      "mcp__unity-mcp__Unity_ManageMenuItem",
+      "mcp__unity-mcp__Unity_RunCommand",
+      "Bash(xxd)",
+      "Bash(uuidgen)",
+      "mcp__unity-mcp__Unity_ManageGameObject",
+      "mcp__unity-mcp__Unity_Camera_Capture",
+      "Bash(cp Test_WeaponRange.unity Test_EnemyArena.unity)",
+      "Bash(cat)",
+      "mcp__unity-mcp__Unity_SceneView_CaptureMultiAngleSceneView",
+      "Bash(grep -v '\\\\.meta$')",
+      "Bash(mkdir -p Assets/Code/Scripts/Tests)",
+      "Bash(echo '=== log path: /Users/bekbolataldiyarov/Library/Logs/Unity/Editor.log ===')",
+      "Read(//Users/bekbolataldiyarov/Library/Logs/Unity/**)",
+      "Bash(cd Library/Bee/artifacts/200b0aE.dag/)",
+      "Bash(ls -la Biofall.Core*)",
+      "Bash(grep -nE '\\\\.cs' Biofall.Core.rsp)",
+      "Bash(xargs -I{} grep -oE 'Core/[A-Za-z]+\\\\.cs' {})",
+      "mcp__unity-mcp__Unity_ManageAsset",
+      "mcp__unity-mcp__Unity_CreateScript",
+      "Bash(sips -g pixelWidth -g pixelHeight \"/Users/bekbolataldiyarov/Desktop/projects/Biofall/Assets/Art/Images/Crosshair.png\")"
+    ]
+  }
+}
