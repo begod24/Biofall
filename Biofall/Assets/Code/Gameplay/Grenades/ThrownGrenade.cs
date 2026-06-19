@@ -1,0 +1,99 @@
+using System.Collections.Generic;
+using UnityEngine;
+using Biofall.Core;
+
+namespace Biofall.Gameplay
+{
+    /// <summary>
+    /// A live, pooled grenade. Lobbed by <see cref="GrenadeThrower"/> via <see cref="Launch"/> (ballistic
+    /// arc), counts down a fuse, then explodes: radial damage to everything on <see cref="damageMask"/>
+    /// (enemies only — no friendly fire), a pooled explosion VFX, a camera shake and an SFX. Pooled, so it
+    /// returns itself to the PoolService after blowing up.
+    /// </summary>
+    [RequireComponent(typeof(Rigidbody))]
+    public sealed class ThrownGrenade : MonoBehaviour, IPoolable
+    {
+        [Header("Explosion")]
+        [Tooltip("Seconds before it detonates — kept ~= the thrower's flight time so it blows up on arrival at the aim point.")]
+        [SerializeField] private float fuse = 0.55f;
+        [SerializeField] private float damage = 50f;
+        [SerializeField] private float radius = 2f;
+        [Tooltip("Layers the blast damages — set to the Enemy layer so the player isn't hurt.")]
+        [SerializeField] private LayerMask damageMask = ~0;
+
+        [Header("FX")]
+        [SerializeField] private GameObject explosionPrefab;
+        [SerializeField] private float shakeAmplitude = 0.5f;
+        [SerializeField] private AudioClip explodeSfx;
+        [Range(0f, 1f)][SerializeField] private float sfxVolume = 0.8f;
+
+        private Rigidbody _rb;
+        private float _timer;
+        private bool _exploded;
+
+        private static readonly Collider[] s_hits = new Collider[64];
+        private static readonly HashSet<IDamageable> s_seen = new();
+
+        private void Awake() => _rb = GetComponent<Rigidbody>();
+
+        // ---- Pooling lifecycle ----
+        public void OnSpawned()
+        {
+            _exploded = false;
+            _timer = fuse;
+            _rb.linearVelocity = Vector3.zero;
+            _rb.angularVelocity = Vector3.zero;
+        }
+
+        public void OnDespawned() { }
+
+        /// <summary>Lob toward <paramref name="target"/> so it arrives in <paramref name="flightTime"/> seconds.</summary>
+        public void Launch(Vector3 target, float flightTime)
+        {
+            float t = Mathf.Max(0.2f, flightTime);
+            Vector3 g = Physics.gravity;
+            Vector3 disp = target - transform.position;
+            // Solve disp = v*t + 0.5*g*t^2  →  v = (disp - 0.5*g*t^2) / t
+            _rb.linearVelocity = (disp - 0.5f * g * t * t) / t;
+            _rb.angularVelocity = Random.insideUnitSphere * 8f;
+        }
+
+        private void FixedUpdate()
+        {
+            if (_exploded) return;
+            _timer -= Time.fixedDeltaTime;
+            if (_timer <= 0f) Explode();
+        }
+
+        private void Explode()
+        {
+            _exploded = true;
+            Vector3 center = transform.position;
+
+            s_seen.Clear();
+            int n = Physics.OverlapSphereNonAlloc(center, radius, s_hits, damageMask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < n; i++)
+            {
+                var dmg = s_hits[i].GetComponentInParent<IDamageable>();
+                if (dmg == null || !s_seen.Add(dmg)) continue; // one hit per target
+                Vector3 dir = (s_hits[i].transform.position - center);
+                dir.y = 0f;
+                dmg.TakeDamage(new DamageInfo(damage, center, dir.normalized, gameObject));
+            }
+
+            if (explosionPrefab != null && PoolService.Instance != null)
+                PoolService.Instance.Spawn(explosionPrefab, center, Quaternion.identity);
+
+            EventBus.Publish(new CameraShake(shakeAmplitude));
+            if (explodeSfx != null) AudioSource.PlayClipAtPoint(explodeSfx, center, sfxVolume);
+
+            Despawn();
+        }
+
+        private void Despawn()
+        {
+            if (PoolService.Instance != null) PoolService.Instance.Despawn(gameObject);
+            else gameObject.SetActive(false);
+        }
+    }
+}
