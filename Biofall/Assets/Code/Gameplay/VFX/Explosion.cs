@@ -3,11 +3,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Pooled explosion VFX. Drives the custom <c>Biofall/Explosion</c> shader's <c>_Progress</c> over a
-    /// short lifetime while scaling up the fireball sphere and the flat ground shockwave ring and fading a
-    /// light flash — then returns itself to the pool. Purely cosmetic (damage is done by the grenade).
-    /// </summary>
     public sealed class Explosion : MonoBehaviour, IPoolable
     {
         [SerializeField] private float duration = 0.6f;
@@ -60,7 +55,6 @@ namespace Biofall.Gameplay
 
         private void Apply(float p)
         {
-            // ease-out so the ball snaps open then settles
             float ease = 1f - (1f - p) * (1f - p);
 
             if (_fireTf != null)
@@ -80,7 +74,7 @@ namespace Biofall.Gameplay
             if (shockwave != null)
             {
                 shockwave.GetPropertyBlock(_mpb);
-                _mpb.SetFloat(ProgressId, Mathf.Clamp01(p * 1.15f)); // ring burns out a touch sooner
+                _mpb.SetFloat(ProgressId, Mathf.Clamp01(p * 1.15f));
                 shockwave.SetPropertyBlock(_mpb);
             }
 

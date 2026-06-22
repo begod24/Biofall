@@ -2,12 +2,6 @@ using UnityEngine;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Encapsulates aiming: casts a ray from the mouse onto the ground plane at the
-    /// body's height and turns the body to face that point. Exposes the world
-    /// <see cref="AimPoint"/> for weapons/crosshair to use later. No input logic here —
-    /// it's told which screen position to aim at.
-    /// </summary>
     public sealed class PlayerAim : MonoBehaviour
     {
         [Header("Aim")]
@@ -16,7 +10,6 @@ namespace Biofall.Gameplay
 
         private Camera _camera;
 
-        /// <summary>World point under the cursor on the player's ground plane.</summary>
         public Vector3 AimPoint { get; private set; }
 
         private void Awake()
@@ -24,7 +17,6 @@ namespace Biofall.Gameplay
             _camera = Camera.main;
         }
 
-        /// <summary>Aim the body toward the given screen position (usually the mouse).</summary>
         public void AimAt(Vector2 screenPosition)
         {
             if (_camera == null)

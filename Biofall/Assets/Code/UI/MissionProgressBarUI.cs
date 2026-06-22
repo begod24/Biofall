@@ -5,15 +5,10 @@ using Biofall.Gameplay.Mission1;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Observer: the shared mission progress bar (generator charge / beacon defense /
-    /// extraction countdown). Driven entirely by <see cref="MissionProgress"/> — shows/hides
-    /// itself and fills by scaling the fill's X (left-pivoted solid Image, like HealthBarUI).
-    /// </summary>
     public sealed class MissionProgressBarUI : MonoBehaviour
     {
-        [SerializeField] private GameObject root;     // bar container to show/hide
-        [SerializeField] private RectTransform fill;  // left-pivoted fill
+        [SerializeField] private GameObject root;
+        [SerializeField] private RectTransform fill;
         [SerializeField] private TMP_Text label;
 
         private void Awake()

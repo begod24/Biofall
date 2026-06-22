@@ -2,11 +2,6 @@ using UnityEngine;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Player arsenal: switches the active weapon (1 = slot 0, 2 = slot 1) by enabling one weapon
-    /// GameObject at a time and telling the Animator which weapon is held (Weapon int: 0 pistol,
-    /// 1 rifle). Each weapon keeps its own <see cref="AmmoSystem"/>; the active one drives the HUD.
-    /// </summary>
     [RequireComponent(typeof(PlayerInput))]
     public sealed class WeaponController : MonoBehaviour
     {
@@ -21,21 +16,16 @@ namespace Biofall.Gameplay
         private static readonly int FireId = Animator.StringToHash("Fire");
         private static readonly int ReloadId = Animator.StringToHash("Reload");
 
-        /// <summary>Index of the currently equipped weapon slot (co-op: sent so teammates replay the
-        /// right weapon's fire FX).</summary>
         public int ActiveSlot => _active;
 
-        /// <summary>The weapon in a given slot (co-op fire-FX replay resolves the firer by slot).</summary>
         public Weapon WeaponAt(int index) =>
             (weapons != null && index >= 0 && index < weapons.Length) ? weapons[index] : null;
 
-        /// <summary>Ammo of the currently equipped weapon (for pickups).</summary>
         public AmmoSystem ActiveAmmo =>
             (_active >= 0 && _active < weapons.Length && weapons[_active] != null)
                 ? weapons[_active].GetComponent<AmmoSystem>()
                 : null;
 
-        /// <summary>Ammo pickups feed every finite weapon (the pistol is infinite, so rounds go to the M4).</summary>
         public void AddReserveAmmo(int amount)
         {
             if (weapons == null) return;
@@ -73,7 +63,7 @@ namespace Biofall.Gameplay
             if (animator != null)
             {
                 animator.SetInteger(WeaponId, index == 1 ? 1 : 0);
-                animator.ResetTrigger(FireId);   // drop any stale trigger from the previous weapon
+                animator.ResetTrigger(FireId);
                 animator.ResetTrigger(ReloadId);
             }
         }

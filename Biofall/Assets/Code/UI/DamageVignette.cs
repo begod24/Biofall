@@ -4,11 +4,6 @@ using Biofall.Core;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Maroon edge vignette that reflects pain: a brief pulse when the player is hit, and a
-    /// persistent glow that grows as HP gets low (~60% coverage by ~20–30 HP). Pure observer —
-    /// it only reads <see cref="PlayerDamaged"/>/<see cref="PlayerDied"/> and tints a full-screen Image.
-    /// </summary>
     public sealed class DamageVignette : MonoBehaviour
     {
         [SerializeField] private Image image;
@@ -50,7 +45,7 @@ namespace Biofall.UI
         private void OnDamaged(PlayerDamaged e)
         {
             _hp = e.Current;
-            if (e.Amount > 0f) _pulse = pulseStrength; // flash on real hits, not the init sync
+            if (e.Amount > 0f) _pulse = pulseStrength;
         }
 
         private void OnDied(PlayerDied _)

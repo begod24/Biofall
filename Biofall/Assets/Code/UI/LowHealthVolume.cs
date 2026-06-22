@@ -4,13 +4,6 @@ using Biofall.Core;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Drives a low-health post-processing Volume: as HP drops the world desaturates, chromatic
-    /// aberration creeps in and the edges darken; each hit adds a brief spike. Pure observer of
-    /// <see cref="PlayerDamaged"/>/<see cref="PlayerDied"/>. Lives on the same GameObject as the
-    /// Volume and only moves its weight (0 = healthy, 1 = near-death), so the look stays in the
-    /// VolumeProfile and is tunable without code.
-    /// </summary>
     [RequireComponent(typeof(Volume))]
     public sealed class LowHealthVolume : MonoBehaviour
     {
@@ -56,7 +49,7 @@ namespace Biofall.UI
         private void OnDamaged(PlayerDamaged e)
         {
             _hp = e.Current;
-            if (e.Amount > 0f) _pulse = pulseStrength; // spike on real hits, not the init sync
+            if (e.Amount > 0f) _pulse = pulseStrength;
         }
 
         private void OnDied(PlayerDied _)

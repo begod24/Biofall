@@ -9,17 +9,6 @@ using Biofall.Net;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Main menu controller. Root buttons (Play/Continue/Settings/Credits/Exit) plus sub-panels:
-    /// Play (Campaign → Mission_1, Wave Mode → WaveMode), Campaign mode (Solo / Co-op), the real
-    /// LAN co-op flow (Connect → Host or Browse → Lobby → Start), Settings and Credits.
-    /// Wires all of its own buttons/controls in Awake — the scene just supplies the references.
-    ///
-    /// Co-op path: choosing Co-op spins up the <see cref="NetworkBootstrap"/> (NetworkRoot prefab,
-    /// instantiated on demand so SOLO stays completely non-networked) and drives the lobby straight
-    /// off <see cref="NetworkBootstrap"/>/<see cref="CoopSession"/>/<see cref="LanDiscovery"/> —
-    /// this replaces the old <c>CoopDevHud</c> OnGUI tester.
-    /// </summary>
     public sealed class MainMenuUI : MonoBehaviour
     {
         [Header("Root buttons")]
@@ -105,7 +94,7 @@ namespace Biofall.UI
             CloseAllPanels();
 
             Wire(playButton, () => Show(playPanel));
-            Wire(continueButton, () => SceneManager.LoadScene(GameScenes.Gameplay)); // no saves yet → just opens campaign
+            Wire(continueButton, () => SceneManager.LoadScene(GameScenes.Gameplay));
             Wire(settingsButton, () => Show(settingsPanel));
             Wire(creditsButton, () => Show(creditsPanel));
             Wire(exitButton, Quit);
@@ -117,17 +106,14 @@ namespace Biofall.UI
             Wire(coopButton, OpenCoopConnect);
             Wire(campaignModeBackButton, () => Show(playPanel));
 
-            // Co-op connect
             Wire(hostButton, HostGame);
             Wire(findButton, OpenBrowser);
             Wire(connectBackButton, CoopBackToCampaign);
 
-            // Co-op browser
             Wire(browserRefreshButton, RefreshHosts);
             Wire(browserBackButton, () => Show(coopConnectPanel));
             WireHostRows();
 
-            // Co-op lobby
             Wire(lobbyReadyButton, ToggleReady);
             Wire(lobbyStartButton, StartGame);
             Wire(lobbyBackButton, LeaveLobby);
@@ -160,8 +146,6 @@ namespace Biofall.UI
 
         private void Update()
         {
-            // Live-refresh the co-op panels straight off the network state (poll — cheap in a menu,
-            // and avoids fragile subscribe/unsubscribe to objects that spawn mid-flow).
             if (coopBrowserPanel != null && coopBrowserPanel.activeSelf) RefreshHostRows();
             if (coopLobbyPanel != null && coopLobbyPanel.activeSelf) RefreshLobby();
         }
@@ -190,24 +174,21 @@ namespace Biofall.UI
             SetRootMenuVisible(true);
         }
 
-        // ---------------------------------------------------------------- Co-op flow
-
         private void OpenCoopConnect()
         {
             EnsureNetworkRoot();
             Show(coopConnectPanel);
         }
 
-        /// <summary>Instantiate the NetworkRoot once. Solo never calls this, so it stays non-networked.</summary>
         private void EnsureNetworkRoot()
         {
-            if (NetworkBootstrap.Instance != null) return;     // persists via DontDestroyOnLoad
+            if (NetworkBootstrap.Instance != null) return;
             if (networkRootPrefab == null)
             {
                 Debug.LogError("[MainMenuUI] networkRootPrefab not assigned — co-op cannot start.");
                 return;
             }
-            Instantiate(networkRootPrefab); // NetworkBootstrap.Awake registers Instance + DontDestroyOnLoad
+            Instantiate(networkRootPrefab);
         }
 
         private void HostGame()
@@ -291,7 +272,7 @@ namespace Biofall.UI
         {
             var s = CoopSession.Instance;
             if (s != null && NetworkManager.Singleton != null && NetworkManager.Singleton.IsHost && s.AllReady())
-                s.StartGame(); // networked scene load → brings everyone into CoopArena
+                s.StartGame();
         }
 
         private void LeaveLobby()
@@ -312,14 +293,12 @@ namespace Biofall.UI
             _shownHosts.Clear();
         }
 
-        /// <summary>Drive the lobby readouts (squad slots, ready/start buttons) off the live session.</summary>
         private void RefreshLobby()
         {
             var nm = NetworkManager.Singleton;
             var s = CoopSession.Instance;
             bool isHost = nm != null && nm.IsHost;
 
-            // Squad slots (P1..P4) from the replicated slot list.
             int count = (s != null && s.Slots != null) ? s.Slots.Count : 0;
             for (int i = 0; squadStatusLabels != null && i < squadStatusLabels.Length; i++)
             {
@@ -339,7 +318,6 @@ namespace Biofall.UI
                 else squadStatusDots[i].color = s.Slots[i].Ready ? ReadyColor : ConnectedColor;
             }
 
-            // Ready button reflects local player's own state.
             if (lobbyReadyButton != null)
             {
                 bool localReady = false;
@@ -350,15 +328,12 @@ namespace Biofall.UI
                 if (t != null) t.text = localReady ? "READY ✓" : "READY UP";
             }
 
-            // Start is host-only and gated on everyone being ready.
             if (lobbyStartButton != null)
             {
                 lobbyStartButton.gameObject.SetActive(isHost);
                 lobbyStartButton.interactable = isHost && s != null && s.AllReady();
             }
         }
-
-        // ---------------------------------------------------------------- Root menu / panels
 
         private void CollectRootMenuObjects()
         {
@@ -387,8 +362,6 @@ namespace Biofall.UI
                 if (_rootMenuObjects[i] != null)
                     _rootMenuObjects[i].SetActive(visible);
         }
-
-        // ---------------------------------------------------------------- Operator selection (cosmetic; sync in Phase E)
 
         private void WireOperatorButtons()
         {
@@ -420,8 +393,6 @@ namespace Biofall.UI
             }
         }
 
-        // ---------------------------------------------------------------- Settings (display)
-
         private void SetupDisplayDropdowns()
         {
             if (resolutionDropdown != null)
@@ -432,7 +403,7 @@ namespace Biofall.UI
                 foreach (var r in Screen.resolutions)
                 {
                     string key = r.width + " x " + r.height;
-                    if (!seen.Add(key)) continue;          // collapse duplicate refresh-rate entries
+                    if (!seen.Add(key)) continue;
                     _resolutions.Add(r);
                     options.Add(key);
                 }
@@ -464,12 +435,11 @@ namespace Biofall.UI
             GameSettings.ApplyDisplay(r.width, r.height, IndexToMode(fullscreenDropdown.value));
         }
 
-        // Dropdown order: 0 Fullscreen, 1 Windowed, 2 Borderless.
         private static int ModeToIndex(FullScreenMode mode) => mode switch
         {
             FullScreenMode.ExclusiveFullScreen => 0,
             FullScreenMode.Windowed => 1,
-            _ => 2, // FullScreenWindow / MaximizedWindow → Borderless
+            _ => 2,
         };
 
         private static FullScreenMode IndexToMode(int index) => index switch

@@ -5,12 +5,6 @@ using Biofall.Net;
 
 namespace Biofall.Gameplay.Mission1
 {
-    /// <summary>
-    /// Mission 1 — first objective. The player walks to the generator and presses E once;
-    /// a progress bar then fills on its own over <see cref="chargeTime"/> and the generator
-    /// powers up (light + hum). On completion it publishes <see cref="GeneratorActivated"/>,
-    /// which the <see cref="MissionDirector"/> turns into the next phase. Self-contained.
-    /// </summary>
     public sealed class GeneratorStation : MonoBehaviour, IInteractable
     {
         [Header("Charge")]
@@ -31,7 +25,6 @@ namespace Biofall.Gameplay.Mission1
         private bool _activated;
         private bool _charging;
 
-        // IInteractable ---------------------------------------------------
         public bool CanInteract => !_activated && !_charging;
         public string Prompt => prompt;
         public Vector3 Position => transform.position;
@@ -39,7 +32,6 @@ namespace Biofall.Gameplay.Mission1
         public void Interact(GameObject interactor)
         {
             if (!CanInteract) return;
-            // CO-OP client: the server owns the mission — request the charge instead of running it.
             if (NetSession.InCoop && !NetSession.IsServer)
             {
                 CoopMission.Instance?.RequestGeneratorRpc();
@@ -48,18 +40,14 @@ namespace Biofall.Gameplay.Mission1
             ServerInteract();
         }
 
-        /// <summary>Authority-side (server/solo) start of the charge. Called directly in solo, or by
-        /// <see cref="CoopMission"/> on the server when a client requests it.</summary>
         public void ServerInteract()
         {
             if (!CanInteract) return;
             StartCoroutine(ChargeRoutine());
         }
-        // -----------------------------------------------------------------
 
         private void Awake()
         {
-            // Start unpowered.
             SetLights(false);
             if (enableWhenPowered != null)
                 foreach (var go in enableWhenPowered)
@@ -69,8 +57,6 @@ namespace Biofall.Gameplay.Mission1
         private void OnEnable()
         {
             PlayerInteractor.Register(this);
-            // Visuals are driven by the FACT so they fire on every peer (server publishes locally;
-            // co-op clients receive it mirrored through CoopMission).
             EventBus.Subscribe<GeneratorActivated>(OnActivatedFact);
         }
 
@@ -84,7 +70,6 @@ namespace Biofall.Gameplay.Mission1
         {
             _charging = true;
             float t = 0f;
-            // Hide the prompt the moment charging starts (CanInteract is already false).
             while (t < chargeTime)
             {
                 t += Time.deltaTime;
@@ -94,7 +79,7 @@ namespace Biofall.Gameplay.Mission1
 
             EventBus.Publish(new MissionProgress(barLabel, 1f, false));
             _charging = false;
-            EventBus.Publish(new GeneratorActivated()); // fact → director advances + powered visuals
+            EventBus.Publish(new GeneratorActivated());
         }
 
         private void OnActivatedFact(GeneratorActivated _)

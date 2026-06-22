@@ -3,12 +3,6 @@ using UnityEngine;
 
 namespace Biofall.Core
 {
-    /// <summary>
-    /// Object Pooling service. Bullets, VFX and targets are reused instead of
-    /// Instantiate/Destroy in the middle of combat (no per-shot GC spikes).
-    /// One pool per source prefab. Spawned objects implementing <see cref="IPoolable"/>
-    /// get OnSpawned/OnDespawned callbacks to reset their state.
-    /// </summary>
     public sealed class PoolService : MonoBehaviour
     {
         public static PoolService Instance { get; private set; }
@@ -30,7 +24,6 @@ namespace Biofall.Core
             if (Instance == this) Instance = null;
         }
 
-        /// <summary>Pre-create <paramref name="count"/> instances so the first shots don't allocate.</summary>
         public void Prewarm(GameObject prefab, int count)
         {
             if (prefab == null || count <= 0) return;
@@ -70,7 +63,6 @@ namespace Biofall.Core
             }
             else
             {
-                // Not ours (or lost its tag) — destroy rather than leak.
                 Destroy(obj);
             }
         }

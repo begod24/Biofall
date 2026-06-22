@@ -5,12 +5,6 @@ using UnityEngine.SceneManagement;
 
 namespace Biofall.Core
 {
-    /// <summary>
-    /// Boot splash. Shows the BIOFALL banner with a fast punch-in zoom (scale snaps up past
-    /// 1.0 and settles), holds, then fades to black and hands off to the main menu. The menu
-    /// is preloaded asynchronously while the splash plays so activation is seamless. This is
-    /// the Boot scene's owner of the Boot -> MainMenu handoff (replaces BootLoader's instant load).
-    /// </summary>
     public sealed class BootSplash : MonoBehaviour
     {
         [Header("Wiring")]
@@ -35,9 +29,8 @@ namespace Biofall.Core
         private void Start()
         {
             Time.timeScale = 1f;
-            EventBus.Clear(); // safe baseline before MainMenu subscribes
+            EventBus.Clear();
 
-            // Auto-wire from the banner child so the scene doesn't depend on inspector references.
             if (bannerGroup == null) bannerGroup = GetComponentInChildren<CanvasGroup>(true);
             if (bannerRect == null && bannerGroup != null) bannerRect = bannerGroup.GetComponent<RectTransform>();
 
@@ -49,11 +42,9 @@ namespace Biofall.Core
 
         private IEnumerator Run()
         {
-            // Preload the menu in the background; don't switch until the splash is done.
             AsyncOperation load = SceneManager.LoadSceneAsync(nextScene);
             load.allowSceneActivation = false;
 
-            // Punch in: alpha rushes to full in the first third while the scale eases up with overshoot.
             yield return Animate(punchDuration, k =>
             {
                 if (bannerGroup != null) bannerGroup.alpha = Mathf.Clamp01(k * 3f);
@@ -68,7 +59,6 @@ namespace Biofall.Core
 
             yield return new WaitForSecondsRealtime(holdDuration);
 
-            // Fade banner out over the black backdrop, then cut to the menu.
             yield return Animate(fadeOutDuration, k =>
             {
                 if (bannerGroup != null) bannerGroup.alpha = 1f - k;
@@ -96,8 +86,6 @@ namespace Biofall.Core
             step(1f);
         }
 
-        // Ease-out-cubic: fast in, smooth settle to exactly 1.0 — never overshoots, so the
-        // banner is fully visible at every frame of the punch (no cropping at the peak).
         private static float EaseOutCubic(float x)
         {
             float p = 1f - x;

@@ -4,13 +4,6 @@ using Biofall.Net;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// The Screamer's attack. While the Animator is in the scream/Attack state it plays SFX_Scremaer
-    /// once, then repeatedly emits expanding wave rings (every <see cref="ScreamerData.waveInterval"/>)
-    /// that ripple out across the area around it. Each wave shakes the camera and damages the player
-    /// if they're inside the radius — so standing in the zone during the scream keeps hurting. Enemies
-    /// never take wave damage. Lives beside <see cref="Enemy"/> on the Screamer prefab.
-    /// </summary>
     public sealed class ScreamWaveAttack : MonoBehaviour
     {
         [SerializeField] private ScreamerData data;
@@ -19,7 +12,6 @@ namespace Biofall.Gameplay
         [Tooltip("Optional spawn origin for the wave VFX (defaults to this transform, on the ground).")]
         [SerializeField] private Transform waveOrigin;
 
-        // The state that plays the scream clip is named "Attack" in the controller.
         private static readonly int ScreamStateHash = Animator.StringToHash("Attack");
 
         private Transform _tf;
@@ -36,7 +28,7 @@ namespace Biofall.Gameplay
 
         private void OnDisable()
         {
-            _screaming = false; // clean slate for a pooled reuse
+            _screaming = false;
         }
 
         private void Update()
@@ -47,7 +39,6 @@ namespace Biofall.Gameplay
 
             if (inScream && !_screaming)
             {
-                // Scream just started.
                 _screaming = true;
                 _pulseTimer = data.waveDelay;
                 PlayScreamSfx();
@@ -74,15 +65,13 @@ namespace Biofall.Gameplay
                 audioSource.PlayOneShot(data.screamSfx, data.screamVolume);
         }
 
-        /// <summary>One ripple: spawn the expanding ring VFX, shake the camera, hurt the player if near.</summary>
         private void EmitWave()
         {
             Vector3 origin = waveOrigin.position;
 
-            // Visual: pooled, pulsing red ring that expands to the damage radius and fades.
             if (data.waveVfxPrefab != null && PoolService.Instance != null)
             {
-                Vector3 vfxPos = origin + Vector3.up * 0.08f; // lift off the ground to avoid z-fighting
+                Vector3 vfxPos = origin + Vector3.up * 0.08f;
                 GameObject go = PoolService.Instance.Spawn(data.waveVfxPrefab, vfxPos, Quaternion.identity);
                 if (go != null && go.TryGetComponent(out ScreamWaveVFX vfx))
                     vfx.Play(data.waveRadius, data.waveExpandDuration);
@@ -91,14 +80,10 @@ namespace Biofall.Gameplay
             if (data.cameraShakeAmplitude > 0f)
                 EventBus.Publish(new CameraShake(data.cameraShakeAmplitude));
 
-            // Damage: players only (zombies are immune to the wave).
             float r2 = data.waveRadius * data.waveRadius;
 
             if (NetSession.InCoop)
             {
-                // Server-authoritative AoE: only the server deals damage, and it hits EVERY player in
-                // range (each player's HP is owner-auth, so route through their CoopPlayer like melee).
-                // On clients this method still runs for the VFX/shake above, but never damages.
                 if (!NetSession.IsServer) return;
 
                 var all = PlayerRegistry.All;
@@ -114,7 +99,6 @@ namespace Biofall.Gameplay
                 return;
             }
 
-            // Solo: single local player.
             Transform playerTf = PlayerRegistry.Player;
             if (playerTf == null) return;
 

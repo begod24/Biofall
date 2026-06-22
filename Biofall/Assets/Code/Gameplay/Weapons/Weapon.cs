@@ -4,13 +4,6 @@ using Biofall.Net;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// A weapon's runtime behaviour (Encapsulation / Observer). Reads player intent, applies the
-    /// data-driven fire mode (Single / Auto / Burst) + fire-rate + ammo + reload, then fires a
-    /// HITSCAN along the player's AIM, spawns a pooled muzzle flash + tracer, plays SFX, drives the
-    /// player Animator (Fire/Reload), and announces <see cref="WeaponFired"/>. Stats live in
-    /// <see cref="WeaponData"/>; ammo is this weapon's own <see cref="AmmoSystem"/> (same GameObject).
-    /// </summary>
     [RequireComponent(typeof(AudioSource))]
     [RequireComponent(typeof(AmmoSystem))]
     public sealed class Weapon : MonoBehaviour
@@ -26,14 +19,13 @@ namespace Biofall.Gameplay
         private PlayerAim _aim;
         private Animator _animator;
         private OwnerNetworkAnimator _netAnimator;
-        private WeaponController _weaponController; // co-op: identifies which slot fired (for FX replication)
-        private CoopPlayer _coopPlayer;             // co-op: broadcasts fire FX to teammates
+        private WeaponController _weaponController;
+        private CoopPlayer _coopPlayer;
 
         private float _nextFireTime;
         private bool _reloading;
         private float _reloadTimer;
 
-        // burst state
         private float _heldTime;
         private int _burstShotsLeft;
         private float _nextBurstTime;
@@ -41,7 +33,6 @@ namespace Biofall.Gameplay
         private static readonly int FireId = Animator.StringToHash("Fire");
         private static readonly int ReloadId = Animator.StringToHash("Reload");
 
-        /// <summary>This weapon never runs out (e.g. the pistol) — pickups skip it, HUD shows ∞.</summary>
         public bool InfiniteAmmo => data != null && data.infiniteAmmo;
 
         private void Awake()
@@ -59,17 +50,11 @@ namespace Biofall.Gameplay
             _input = GetComponentInParent<PlayerInput>();
             _aim = GetComponentInParent<PlayerAim>();
             _animator = GetComponentInParent<Animator>();
-            // Present only on the co-op player — used to replicate Fire/Reload to teammates.
             _netAnimator = GetComponentInParent<OwnerNetworkAnimator>();
             _weaponController = GetComponentInParent<WeaponController>();
             _coopPlayer = GetComponentInParent<CoopPlayer>();
         }
 
-        /// <summary>
-        /// Drive a character-Animator trigger. In co-op we route through the <see cref="OwnerNetworkAnimator"/>
-        /// so teammates actually see the fire/reload animation — NGO can miss momentary triggers set
-        /// directly on the Animator. Solo (no NetworkAnimator) falls back to the plain Animator.
-        /// </summary>
         private void PlayAnimTrigger(int hash)
         {
             if (_netAnimator != null) _netAnimator.SetTrigger(hash);
@@ -78,7 +63,7 @@ namespace Biofall.Gameplay
 
         private void Update()
         {
-            if (Time.timeScale <= 0f) return; // paused
+            if (Time.timeScale <= 0f) return;
             if (_input == null || data == null) return;
 
             if (_reloading)
@@ -123,17 +108,16 @@ namespace Biofall.Gameplay
         {
             if (_input.FirePressed)
             {
-                // tap → a single shot
                 _heldTime = 0f;
                 if (Time.time >= _nextFireTime) TryFire();
             }
             else if (_input.FireHeld)
             {
                 _heldTime += Time.deltaTime;
-                if (_heldTime < data.holdToBurst) return; // still a tap, wait
+                if (_heldTime < data.holdToBurst) return;
 
                 if (_burstShotsLeft <= 0 && Time.time >= _nextBurstTime)
-                    _burstShotsLeft = data.burstCount; // start a new burst
+                    _burstShotsLeft = data.burstCount;
 
                 if (_burstShotsLeft > 0 && Time.time >= _nextFireTime)
                 {
@@ -142,7 +126,7 @@ namespace Biofall.Gameplay
                         _burstShotsLeft--;
                         if (_burstShotsLeft <= 0) _nextBurstTime = Time.time + data.burstCooldown;
                     }
-                    else _burstShotsLeft = 0; // out of ammo
+                    else _burstShotsLeft = 0;
                 }
             }
             else
@@ -152,7 +136,6 @@ namespace Biofall.Gameplay
             }
         }
 
-        /// <summary>Fire one round if ammo allows. Returns true if a shot actually went out.</summary>
         private bool TryFire()
         {
             if (!data.infiniteAmmo && _ammo != null && !_ammo.TryConsume(1)) return false;
@@ -166,7 +149,6 @@ namespace Biofall.Gameplay
             {
                 if (NetSession.InCoop)
                 {
-                    // CO-OP: enemies are server-authoritative — request the hit, the server applies HP.
                     var coopEnemy = hit.collider.GetComponentInParent<CoopEnemy>();
                     if (coopEnemy != null) coopEnemy.DamageRpc(data.damage, hit.point, direction);
                 }
@@ -178,8 +160,6 @@ namespace Biofall.Gameplay
             }
 
             PlayFireFx(origin, rotation);
-            // CO-OP: replay the muzzle flash + tracer on teammates' machines (the owner just did it
-            // locally; remotes' Weapon is disabled and never spawns these otherwise).
             if (NetSession.InCoop && _coopPlayer != null && _weaponController != null)
                 _coopPlayer.BroadcastFireFx(_weaponController.ActiveSlot, origin, direction);
 
@@ -189,17 +169,12 @@ namespace Biofall.Gameplay
             return true;
         }
 
-        /// <summary>Spawn the muzzle flash + tracer locally. Shared by the local shot and the co-op
-        /// remote replay (<see cref="PlayRemoteFireFx"/>).</summary>
         private void PlayFireFx(Vector3 origin, Quaternion rotation)
         {
             SpawnFromPool(data.muzzleFlashPrefab, origin, rotation);
             SpawnTracer(origin, rotation);
         }
 
-        /// <summary>CO-OP: a teammate fired this weapon — replay its muzzle flash + tracer on this
-        /// machine. Called via <see cref="CoopPlayer"/>'s fire RPC. The component may be disabled on a
-        /// remote replica, which is fine: we only spawn pooled cosmetics (no input, no hitscan).</summary>
         public void PlayRemoteFireFx(Vector3 origin, Vector3 direction)
         {
             if (data == null) return;
@@ -236,7 +211,7 @@ namespace Biofall.Gameplay
 
         private void TryStartReload()
         {
-            if (data.infiniteAmmo) return; // never needs reloading
+            if (data.infiniteAmmo) return;
             if (_ammo == null) return;
             if (_ammo.Rounds >= _ammo.MagazineSize || _ammo.Reserve <= 0) return;
 

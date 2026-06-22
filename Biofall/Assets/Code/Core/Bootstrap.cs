@@ -2,12 +2,6 @@ using UnityEngine;
 
 namespace Biofall.Core
 {
-    /// <summary>
-    /// Scene entry point. Initializes Core services before any gameplay system runs:
-    /// resets the EventBus (safe across play sessions) and guarantees a PoolService.
-    /// Runs very early via execution order. While enabled it logs raw input so the
-    /// Phase 0 checkpoint ("input is read, visible in console") is verifiable.
-    /// </summary>
     [DefaultExecutionOrder(-1000)]
     public sealed class Bootstrap : MonoBehaviour
     {
@@ -22,9 +16,8 @@ namespace Biofall.Core
 
         private void Awake()
         {
-            // Stay safe when Domain Reload is disabled: old subscriptions must not survive.
             EventBus.Clear();
-            CurrencyWallet.Reset(); // per-run currency
+            CurrencyWallet.Reset();
 
             EnsurePoolService();
 

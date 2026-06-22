@@ -2,13 +2,6 @@ using UnityEngine;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Feeds the character Animator's 2D locomotion blend tree. The body turns to face
-    /// the cursor (see <see cref="PlayerAim"/>), so movement is converted into the body's
-    /// local space: MoveX = strafe (left/right), MoveY = forward/back. This makes the
-    /// character strafe and backpedal correctly instead of always playing "walk forward".
-    /// Presentation only — it reads intent and drives params, it never moves the body.
-    /// </summary>
     [RequireComponent(typeof(PlayerInput))]
     public sealed class PlayerAnimator : MonoBehaviour
     {
@@ -35,7 +28,6 @@ namespace Biofall.Gameplay
             Vector3 world = new Vector3(_input.Move.x, 0f, _input.Move.y);
             if (world.sqrMagnitude > 1f) world.Normalize();
 
-            // Express movement relative to where the body is facing (aim direction).
             Vector3 local = transform.InverseTransformDirection(world);
 
             float dt = Time.deltaTime;

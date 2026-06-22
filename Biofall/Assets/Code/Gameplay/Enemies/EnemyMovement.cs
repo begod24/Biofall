@@ -3,16 +3,6 @@ using UnityEngine.AI;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// NavMesh-driven movement WITHOUT a NavMeshAgent (so one central <see cref="EnemyManager"/> tick
-    /// scales to 100–150 enemies). Two states:
-    ///   • Wander — pick a random reachable point on the NavMesh and walk there, then pause and repeat.
-    ///   • Chase  — once aggroed (handled by <see cref="Enemy"/>), path to the player, repathed on a
-    ///     throttled, staggered timer.
-    /// The enemy always walks along NavMesh path corners (which lie on the mesh), and every step the
-    /// resulting position is snapped back onto the NavMesh — so it physically can't enter a wall and
-    /// no wall colliders are needed. Driven by <see cref="Enemy.Tick"/> (no Update of its own).
-    /// </summary>
     public sealed class EnemyMovement : MonoBehaviour
     {
         private EnemyData _data;
@@ -30,10 +20,10 @@ namespace Biofall.Gameplay
 
         private Vector3 _knockback;
 
-        private const float CornerReached = 0.6f;   // distance to advance to the next corner
-        private const float DestReached = 1.2f;      // distance that counts as "arrived"
-        private const float NavClamp = 2f;            // how far we sample to snap back onto the NavMesh
-        private const float PathSampleRadius = 6f;    // tolerance for path endpoints spawned near mesh edges
+        private const float CornerReached = 0.6f;
+        private const float DestReached = 1.2f;
+        private const float NavClamp = 2f;
+        private const float PathSampleRadius = 6f;
 
         public void Init(EnemyData data)
         {
@@ -44,29 +34,21 @@ namespace Biofall.Gameplay
             _cornerIndex = 0;
             _hasWanderTarget = false;
             _knockback = Vector3.zero;
-            // stagger so enemies don't all repath / pick targets on the same frame
             _repathTimer = Random.Range(0f, data.repathInterval);
             _wanderPauseTimer = Random.Range(0f, data.wanderPauseMax);
         }
 
-        /// <summary>Add a stagger impulse (e.g. from being shot). Decays to zero over a few frames.</summary>
         public void AddKnockback(Vector3 impulse)
         {
             impulse.y = 0f;
             _knockback += impulse;
         }
 
-        /// <summary>
-        /// Move one tick. <paramref name="chasing"/> picks the state: chase <paramref name="playerPos"/>
-        /// or wander on its own. <paramref name="separation"/> is the boids push from
-        /// <see cref="EnemyManager"/>. Returns true when chasing AND within attack range.
-        /// </summary>
         public bool Tick(bool chasing, Vector3 playerPos, Vector3 separation, float dt, out bool moving)
         {
             Vector3 pos = _tf.position;
             separation.y = 0f;
 
-            // Knockback first, layered on top of everything, then clamped to the mesh below.
             if (_knockback.sqrMagnitude > 0.0001f)
             {
                 pos += _knockback * dt;
@@ -75,7 +57,6 @@ namespace Biofall.Gameplay
 
             if (chasing)
             {
-                // In attack range: stop, let neighbours fan us out, face the player.
                 Vector3 toPlayer = playerPos - pos; toPlayer.y = 0f;
                 if (toPlayer.sqrMagnitude <= _data.attackRange * _data.attackRange)
                 {
@@ -96,7 +77,6 @@ namespace Biofall.Gameplay
             }
             else
             {
-                // Wander: pick a new reachable point after the idle pause, repath on arrival.
                 if (!_hasWanderTarget)
                 {
                     _wanderPauseTimer -= dt;
@@ -104,7 +84,7 @@ namespace Biofall.Gameplay
                     {
                         SetPath(pos, _wanderTarget);
                         _hasWanderTarget = _cornerCount > 0;
-                        if (!_hasWanderTarget) _wanderPauseTimer = 0.3f; // bad point, retry soon
+                        if (!_hasWanderTarget) _wanderPauseTimer = 0.3f;
                     }
                 }
                 else if (ReachedDestination(pos))
@@ -115,7 +95,6 @@ namespace Biofall.Gameplay
                 }
             }
 
-            // Follow the current path, blend in separation, snap to the NavMesh.
             Vector3 dir = FollowPath(pos);
             Vector3 move = dir + separation * _data.separationWeight;
             move.y = 0f;
@@ -133,8 +112,6 @@ namespace Biofall.Gameplay
             return false;
         }
 
-        // ---- path helpers ----
-
         private void SetPath(Vector3 from, Vector3 to)
         {
             if (!TrySamplePathPoint(from, out Vector3 navFrom) ||
@@ -148,7 +125,7 @@ namespace Biofall.Gameplay
                 _path.status != NavMeshPathStatus.PathInvalid)
             {
                 _cornerCount = _path.GetCornersNonAlloc(_corners);
-                _cornerIndex = _cornerCount > 1 ? 1 : 0; // 0 is our own position
+                _cornerIndex = _cornerCount > 1 ? 1 : 0;
             }
             else
             {
@@ -168,7 +145,6 @@ namespace Biofall.Gameplay
             return false;
         }
 
-        /// <summary>Direction toward the current path corner (XZ), advancing as we reach each one.</summary>
         private Vector3 FollowPath(Vector3 pos)
         {
             if (_cornerCount < 2) return Vector3.zero;
@@ -206,7 +182,6 @@ namespace Biofall.Gameplay
             return false;
         }
 
-        /// <summary>Snap a desired position back onto the NavMesh; falls back to the old position.</summary>
         private Vector3 ClampToNavMesh(Vector3 desired, Vector3 fallback)
         {
             if (NavMesh.SamplePosition(desired, out NavMeshHit hit, NavClamp, NavMesh.AllAreas))

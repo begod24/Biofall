@@ -3,11 +3,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Thin orchestrator (Clean Code / SOLID): wires Input → Motor → Aim each frame and
-    /// registers the player in <see cref="PlayerRegistry"/>. Holds NO movement/aim rules
-    /// itself — all behaviour lives in the dedicated components.
-    /// </summary>
     [RequireComponent(typeof(PlayerInput))]
     [RequireComponent(typeof(PlayerMotor))]
     [RequireComponent(typeof(PlayerAim))]
@@ -29,7 +24,7 @@ namespace Biofall.Gameplay
 
         private void Update()
         {
-            if (Time.timeScale <= 0f) return; // paused — freeze movement & aim
+            if (Time.timeScale <= 0f) return;
             _motor.Move(_input.Move);
             _aim.AimAt(_input.PointerScreenPosition);
         }

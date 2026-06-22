@@ -5,20 +5,11 @@ using Biofall.Core;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Phase E HUD (co-op). Pure Observer — it only listens. Two widgets:
-    ///   • Downed banner: when THIS player is down it shows "YOU ARE DOWN" + a bleed-out bar that
-    ///     drains over the bleed-out window; on revive it hides; on full death it switches to a
-    ///     "waiting for your squad" message.
-    ///   • Revive widget: when a downed teammate is in range it shows a hold-to-revive bar fed by
-    ///     <see cref="ReviveProgress"/>.
-    /// Every reference is optional, so the script is inert until its panels are wired in the scene.
-    /// </summary>
     public sealed class CoopDownedUI : MonoBehaviour
     {
         [Header("Downed banner (this player)")]
         [SerializeField] private GameObject downedPanel;
-        [SerializeField] private Transform bleedFill;   // scaled on X (left-pivoted), like the other bars
+        [SerializeField] private Transform bleedFill;
         [SerializeField] private TMP_Text downedLabel;
         [SerializeField] private string downedText = "YOU ARE DOWN — HOLD ON";
         [SerializeField] private string eliminatedText = "YOU DIED — WAITING FOR YOUR SQUAD";
@@ -56,8 +47,6 @@ namespace Biofall.UI
             EventBus.Unsubscribe<TeamWiped>(OnTeamWiped);
         }
 
-        // ---- this player's downed banner ----
-
         private void OnDowned(PlayerDowned e)
         {
             if (downedLabel != null) downedLabel.text = downedText;
@@ -82,7 +71,6 @@ namespace Biofall.UI
 
         private void OnTeamWiped(TeamWiped _)
         {
-            // The Game Over panel takes over — clear our widgets.
             StopBleed();
             if (downedPanel != null) downedPanel.SetActive(false);
             if (revivePanel != null) revivePanel.SetActive(false);
@@ -107,8 +95,6 @@ namespace Biofall.UI
             if (_bleed != null) { StopCoroutine(_bleed); _bleed = null; }
             SetFill(bleedFill, 1f);
         }
-
-        // ---- reviving-a-teammate widget ----
 
         private void OnReviveProgress(ReviveProgress e)
         {

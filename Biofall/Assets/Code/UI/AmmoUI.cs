@@ -4,10 +4,6 @@ using Biofall.Core;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Observer: shows "magazine / reserve" from <see cref="AmmoChanged"/>.
-    /// Pure listener — it never touches the ammo system.
-    /// </summary>
     public sealed class AmmoUI : MonoBehaviour
     {
         [SerializeField] private TMP_Text text;

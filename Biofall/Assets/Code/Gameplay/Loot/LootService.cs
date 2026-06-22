@@ -4,11 +4,6 @@ using Biofall.Net;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Centralised, event-driven loot dropper (Observer). Listens to <see cref="TargetDied"/> and rolls
-    /// drops from a single <see cref="LootConfig"/> — enemies no longer carry any drop data, so balancing
-    /// the whole game (and future campaign missions) happens in one asset. Spawns via the PoolService.
-    /// </summary>
     public sealed class LootService : MonoBehaviour
     {
         [SerializeField] private LootConfig config;
@@ -22,13 +17,10 @@ namespace Biofall.Gameplay
 
         private void OnTargetDied(TargetDied e)
         {
-            // In co-op the networked CoopLootService spawns server-authoritative loot instead — this
-            // local pool-spawn would only exist on the host and never replicate. Solo runs as before.
             if (NetSession.InCoop) return;
             if (config == null || config.entries == null || e.Target == null) return;
             if (PoolService.Instance == null) return;
 
-            // The enemy archetype that just died (its EnemyData asset) keys type-specific drops.
             var enemy = e.Target.GetComponent<Enemy>();
             EnemyData data = enemy != null ? enemy.Data : null;
 
@@ -37,7 +29,7 @@ namespace Biofall.Gameplay
             foreach (var entry in config.entries)
             {
                 if (entry == null || entry.prefab == null) continue;
-                if (entry.onlyFor != null && entry.onlyFor != data) continue; // type-specific entry, wrong type
+                if (entry.onlyFor != null && entry.onlyFor != data) continue;
                 if (Random.value >= entry.chance) continue;
 
                 int n = Mathf.Max(1, Random.Range(entry.minCount, entry.maxCount + 1));

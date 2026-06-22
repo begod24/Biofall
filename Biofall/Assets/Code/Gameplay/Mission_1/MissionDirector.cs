@@ -5,13 +5,6 @@ using Biofall.Net;
 
 namespace Biofall.Gameplay.Mission1
 {
-    /// <summary>
-    /// The brain of Mission 1. Owns the <see cref="MissionPhase"/> flow: it listens for the
-    /// station "facts" (generator on, beacon switched on, beacon charged, extracted) and
-    /// answers with <see cref="MissionPhaseChanged"/> so UI and stations react. It also ramps
-    /// the horde — calm background spawns until the beacon, then timed waves while it charges.
-    /// Nothing else decides phases; stations stay dumb and self-contained.
-    /// </summary>
     public sealed class MissionDirector : MonoBehaviour
     {
         [Header("Defense waves")]
@@ -32,8 +25,6 @@ namespace Biofall.Gameplay.Mission1
 
         private void OnEnable()
         {
-            // CO-OP: only the SERVER owns the mission flow. Clients get the phase + facts mirrored by
-            // CoopMission, so a client-side director would double-drive things — disable it there.
             if (NetSession.InCoop && !NetSession.IsServer) { enabled = false; return; }
 
             EventBus.Subscribe<GeneratorActivated>(OnGeneratorActivated);
@@ -54,7 +45,6 @@ namespace Biofall.Gameplay.Mission1
 
         private void Start()
         {
-            // Broadcast the opening objective once everything has subscribed.
             SetPhase(MissionPhase.FindGenerator);
         }
 
@@ -81,11 +71,8 @@ namespace Biofall.Gameplay.Mission1
 
         private void OnPlayerDied(PlayerDied _)
         {
-            // CO-OP: one player going down must NOT end the mission for everyone (downed/revive is
-            // Phase E). Only the solo path ends here; co-op keeps running for the survivors.
             if (NetSession.InCoop) return;
 
-            // GameOverUI takes over; stop pumping waves.
             _ended = true;
             StopWaves();
         }

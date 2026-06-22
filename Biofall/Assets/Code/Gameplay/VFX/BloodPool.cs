@@ -4,11 +4,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// A flat blood decal that pops in with a quick grow and then just sits there — no per-frame cost
-    /// once grown. Pooled and hard-capped by <see cref="BloodPoolService"/>, so the on-screen count
-    /// stays bounded and cheap (single shared unlit material = SRP-batched).
-    /// </summary>
     public sealed class BloodPool : MonoBehaviour, IPoolable
     {
         [Tooltip("The flat quad child that is scaled (left null = first child, or self).")]
@@ -44,7 +39,7 @@ namespace Biofall.Gameplay
             {
                 t += Time.deltaTime;
                 float k = Mathf.Clamp01(t / dur);
-                SetScale(Mathf.Lerp(0.01f, _targetScale, k * (2f - k))); // ease-out
+                SetScale(Mathf.Lerp(0.01f, _targetScale, k * (2f - k)));
                 yield return null;
             }
             SetScale(_targetScale);

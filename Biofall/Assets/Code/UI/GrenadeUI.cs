@@ -5,10 +5,6 @@ using Biofall.Core;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Observer: shows the player's current grenade count from <see cref="GrenadeCountChanged"/>.
-    /// Pure listener. Optional <see cref="icon"/> dims when the pouch is empty.
-    /// </summary>
     public sealed class GrenadeUI : MonoBehaviour
     {
         [SerializeField] private TMP_Text text;

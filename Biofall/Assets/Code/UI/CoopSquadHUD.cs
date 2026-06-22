@@ -5,13 +5,6 @@ using Biofall.Net;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Co-op squad roster HUD. Shows up to four rows — one per connected player — each with a name,
-    /// an HP bar (fed by the owner-replicated <see cref="CoopPlayerLife.Health01"/>) and a status
-    /// (ALIVE / DOWN / DEAD from the networked <see cref="LifeState"/>). Pure reader: it polls the
-    /// replicated state every frame, so it works on every peer without extra plumbing. Inert in solo
-    /// (no co-op session → the panel hides) and tolerant of unwired refs.
-    /// </summary>
     public sealed class CoopSquadHUD : MonoBehaviour
     {
         [SerializeField] private GameObject panel;
@@ -35,7 +28,6 @@ namespace Biofall.UI
             if (panel != null) panel.SetActive(coop);
             if (!coop || rows == null) return;
 
-            // Stable order by client id → host is P1, etc.
             _sorted.Clear();
             _sorted.AddRange(CoopPlayerLife.All);
             _sorted.Sort((a, b) => a.OwnerClientId.CompareTo(b.OwnerClientId));

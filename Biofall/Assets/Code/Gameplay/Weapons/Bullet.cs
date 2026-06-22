@@ -3,11 +3,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Visual tracer (Object Pooling). Flies straight along its forward at a set speed for a
-    /// short lifetime, then returns to the pool. Damage is resolved by the weapon's hitscan,
-    /// so the tracer needs no collider — it's purely cosmetic.
-    /// </summary>
     public sealed class Bullet : MonoBehaviour, IPoolable
     {
         [SerializeField] private float speed = 80f;
@@ -15,7 +10,6 @@ namespace Biofall.Gameplay
 
         private float _life;
 
-        /// <summary>Set per-shot motion before/after spawning.</summary>
         public void Launch(float bulletSpeed, float lifetime)
         {
             speed = bulletSpeed;

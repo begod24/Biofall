@@ -4,11 +4,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Central tick + pooled spawning for all zombies. One Update loop calls Tick on every active
-    /// enemy instead of 150 separate MonoBehaviour.Update calls — the main scalability win. Also the
-    /// single owner of the enemy prefab. Enemies register on spawn / unregister on despawn.
-    /// </summary>
     public sealed class EnemyManager : MonoBehaviour
     {
         public static EnemyManager Instance { get; private set; }
@@ -17,7 +12,6 @@ namespace Biofall.Gameplay
 
         private readonly List<Enemy> _enemies = new(256);
 
-        // Reusable buffers for the boids separation pass (no per-frame allocation).
         private Vector3[] _positions = new Vector3[256];
         private bool[] _alive = new bool[256];
         private bool[] _aggro = new bool[256];
@@ -29,14 +23,11 @@ namespace Biofall.Gameplay
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
 
-            // Zombies live on the Enemy layer and move by transform; stop their colliders from
-            // physically shoving the player / ground (they attack at range). Bullets still hit
-            // them because the weapon raycast uses an explicit layer mask, not this matrix.
             int enemyLayer = LayerMask.NameToLayer("Enemy");
             if (enemyLayer >= 0)
             {
-                Physics.IgnoreLayerCollision(enemyLayer, 0, true);          // 0 = Default (player + ground)
-                Physics.IgnoreLayerCollision(enemyLayer, enemyLayer, true); // zombies don't shove each other
+                Physics.IgnoreLayerCollision(enemyLayer, 0, true);
+                Physics.IgnoreLayerCollision(enemyLayer, enemyLayer, true);
             }
         }
 
@@ -57,7 +48,6 @@ namespace Biofall.Gameplay
 
         public Enemy Spawn(Vector3 position, Quaternion rotation) => Spawn(enemyPrefab, position, rotation);
 
-        /// <summary>Spawn a specific enemy prefab (e.g. the Screamer variant) from the pool.</summary>
         public Enemy Spawn(GameObject prefab, Vector3 position, Quaternion rotation)
         {
             if (prefab == null || PoolService.Instance == null) return null;
@@ -69,7 +59,6 @@ namespace Biofall.Gameplay
         {
             float dt = Time.deltaTime;
 
-            // Drop any destroyed entries first.
             for (int i = _enemies.Count - 1; i >= 0; i--)
                 if (_enemies[i] == null) _enemies.RemoveAt(i);
 
@@ -84,7 +73,6 @@ namespace Biofall.Gameplay
                 _aggro = new bool[cap];
             }
 
-            // Snapshot positions/alive/aggro once so the pass reads a consistent frame.
             for (int i = 0; i < count; i++)
             {
                 _positions[i] = _enemies[i].Position;
@@ -92,8 +80,6 @@ namespace Biofall.Gameplay
                 _aggro[i] = _enemies[i].Aggroed;
             }
 
-            // Boids separation (O(n²) — fine for ~150; swap to a spatial grid if it grows much larger),
-            // then tick. Each zombie is pushed away from living neighbours inside its radius.
             for (int i = 0; i < count; i++)
             {
                 Enemy enemy = _enemies[i];
@@ -105,7 +91,7 @@ namespace Biofall.Gameplay
                     float r2 = r * r;
                     Vector3 pi = _positions[i];
 
-                    bool spreadAggro = !_aggro[i];          // idle enemies can be dragged into the chase
+                    bool spreadAggro = !_aggro[i];
                     float ar = enemy.AggroRadius;
                     float ar2 = ar * ar;
                     bool caughtAggro = false;
@@ -120,10 +106,9 @@ namespace Biofall.Gameplay
                         if (sq > 0.0001f && sq < r2)
                         {
                             float dist = Mathf.Sqrt(sq);
-                            separation += d / dist * (1f - dist / r); // closer neighbour = stronger push
+                            separation += d / dist * (1f - dist / r);
                         }
 
-                        // Horde spread: an idle enemy near an already-chasing one joins the chase.
                         if (spreadAggro && _aggro[j] && sq < ar2) caughtAggro = true;
                     }
 

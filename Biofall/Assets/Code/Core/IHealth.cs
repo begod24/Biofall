@@ -1,9 +1,5 @@
 namespace Biofall.Core
 {
-    /// <summary>
-    /// Encapsulation contract for a health pool. Hides how HP is stored/changed;
-    /// exposes only what other systems need to read and the operations they may request.
-    /// </summary>
     public interface IHealth
     {
         float Current { get; }

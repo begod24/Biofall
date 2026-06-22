@@ -5,13 +5,6 @@ using Biofall.Net;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Zombie brain (Object Pooling + Observer). Reuses the generic <see cref="Health"/> for HP and
-    /// IDamageable, drives the Animator (Speed / Attack / Die), chases via <see cref="EnemyMovement"/>,
-    /// and damages the player at the Enemy_Attack hit frame (animation event -> <see cref="OnAttackHit"/>).
-    /// Publishes <see cref="TargetDamaged"/>/<see cref="TargetDied"/>. Ticked centrally by
-    /// <see cref="EnemyManager"/> (no per-enemy Update) so it scales to many zombies.
-    /// </summary>
     [RequireComponent(typeof(Health))]
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(AudioSource))]
@@ -50,24 +43,14 @@ namespace Biofall.Gameplay
         private Renderer[] _renderers;
         private MaterialPropertyBlock _mpb;
 
-        private Material[][] _originalMats;   // sharedMaterials per renderer, cached for pooling restore
-        private Material[][] _dissolveMats;   // per-submaterial dissolve instances (built lazily, reused across lives)
+        private Material[][] _originalMats;
+        private Material[][] _dissolveMats;
         private bool _dissolveSupported = true;
 
-        /// <summary>
-        /// CO-OP only: raised when the corpse is ready to be removed. The server's
-        /// <see cref="CoopEnemy"/> subscribes and NGO-despawns instead of pooling. When there is a
-        /// subscriber, <see cref="Despawn"/> defers to it (solo leaves this null → pools as before).
-        /// </summary>
         public event System.Action DespawnRequested;
 
-        /// <summary>
-        /// Fires (server/solo) the moment an attack swing is triggered, so <see cref="Net.CoopEnemy"/>
-        /// can replicate the Attack animation to the puppets on remote clients.
-        /// </summary>
         public event System.Action AttackTriggered;
 
-        /// <summary>CO-OP clients set this so the puppet never despawns itself — the server owns removal.</summary>
         public bool SuppressDespawn { get; set; }
 
         private static readonly int SpeedId = Animator.StringToHash("Speed");
@@ -79,7 +62,6 @@ namespace Biofall.Gameplay
         private static readonly int EdgeWidthId = Shader.PropertyToID("_EdgeWidth");
         private static readonly int NoiseScaleId = Shader.PropertyToID("_NoiseScale");
 
-        // Global groan throttle so 100+ zombies don't all groan at once (cheap, no per-voice tracking).
         private static float s_nextGroanAllowed;
 
         private void Awake()
@@ -108,11 +90,10 @@ namespace Biofall.Gameplay
             _health.Died -= OnDied;
         }
 
-        // ---- Pooling lifecycle ----
         public void OnSpawned()
         {
             StopAllCoroutines();
-            RestoreMaterials();   // undo any leftover dissolve from the previous life
+            RestoreMaterials();
 
             _dead = false;
             _inRange = false;
@@ -125,7 +106,7 @@ namespace Biofall.Gameplay
 
             if (animator != null)
             {
-                animator.Rebind();      // reset to Locomotion (clears any leftover death pose on reuse)
+                animator.Rebind();
                 animator.Update(0f);
             }
 
@@ -140,38 +121,27 @@ namespace Biofall.Gameplay
             EnemyManager.Instance?.Unregister(this);
         }
 
-        /// <summary>This enemy's archetype config — used as the key for type-specific loot drops.</summary>
         public EnemyData Data => data;
 
-        /// <summary>World position (cached transform) — used by the manager for boids separation.</summary>
         public Vector3 Position => _tf.position;
 
-        /// <summary>True once dead (corpse) — excluded from separation and ticking logic.</summary>
         public bool Dead => _dead;
 
-        /// <summary>Boids separation radius (from data) — read by the manager.</summary>
         public float SeparationRadius => data != null ? data.separationRadius : 1f;
 
-        /// <summary>True once this enemy has locked onto the player (permanent until death).</summary>
         public bool Aggroed => _aggroed;
 
-        /// <summary>Aggro/horde-spread radius (from data) — read by the manager.</summary>
         public float AggroRadius => data != null ? data.aggroRadius : 10f;
 
-        /// <summary>Force this enemy into the chase (used by the manager to spread aggro to neighbours).</summary>
         public void Aggro() { if (!_dead) _aggroed = true; }
 
-        // ---- Central tick (called by EnemyManager) ----
         public void Tick(float dt, Vector3 separation)
         {
             if (_dead) return;
 
-            // Re-evaluate the nearest player every tick (cheap for a few players; in solo it's the
-            // only player, so behaviour is identical). Lets the horde split between co-op teammates.
             CacheTarget();
             if (_playerTf == null) return;
 
-            // Aggro by pure distance; once locked on, chase permanently.
             if (!_aggroed)
             {
                 Vector3 toPlayer = _playerTf.position - _tf.position;
@@ -187,7 +157,7 @@ namespace Biofall.Gameplay
             {
                 _attackTimer = data.attackCooldown;
                 if (animator != null) animator.SetTrigger(_attackId);
-                AttackTriggered?.Invoke(); // co-op: mirror the swing to remote puppets
+                AttackTriggered?.Invoke();
             }
 
             TickFlash(dt);
@@ -204,17 +174,12 @@ namespace Biofall.Gameplay
             }
         }
 
-        /// <summary>CO-OP clients are NOT ticked by the manager — they call this to age the hit flash.</summary>
         public void ClientFxTick(float dt)
         {
             TickFlash(dt);
-            MaybeGroan(dt); // co-op clients aren't manager-ticked → groan locally so the horde isn't silent
+            MaybeGroan(dt);
         }
 
-        /// <summary>
-        /// CO-OP puppets (remote clients) replay the attack swing when the server reports one. Clients
-        /// never run <see cref="OnSpawned"/>, so resolve the trigger hash lazily from the prefab data.
-        /// </summary>
         public void PlayAttackFx()
         {
             if (animator == null) return;
@@ -223,20 +188,15 @@ namespace Biofall.Gameplay
             animator.SetTrigger(_attackId);
         }
 
-        /// <summary>Animation event fired on the Enemy_Attack hit frame.</summary>
         public void OnAttackHit()
         {
             if (_dead || _playerDamageable == null || _playerTf == null) return;
 
-            // Re-check distance so a hit doesn't land if the player already escaped.
             Vector3 d = _playerTf.position - _tf.position;
             d.y = 0f;
             float reach = data.attackRange * 1.15f;
             if (d.sqrMagnitude > reach * reach) return;
 
-            // CO-OP: this attack runs on the SERVER only (clients don't trigger the Attack state).
-            // The target player's HP is owner-authoritative, so ask its owner to apply the damage
-            // instead of writing the server's copy of a remote player's Health.
             if (NetSession.InCoop)
             {
                 var coopPlayer = _playerTf.GetComponentInParent<CoopPlayer>();
@@ -247,23 +207,19 @@ namespace Biofall.Gameplay
             _playerDamageable.TakeDamage(new DamageInfo(data.attackDamage, _tf.position, _tf.forward, gameObject));
         }
 
-        // ---- Health reactions ----
         private void OnDamaged(DamageInfo info, float current)
         {
             EventBus.Publish(new TargetDamaged(gameObject, current, info.Amount));
             PlayHitFx(info);
-            if (healthBar != null && _health.Max > 0f) healthBar.Set(current / _health.Max); // server/solo
-            movement.AddKnockback(info.HitDirection.normalized * data.knockbackForce); // server/solo only
+            if (healthBar != null && _health.Max > 0f) healthBar.Set(current / _health.Max);
+            movement.AddKnockback(info.HitDirection.normalized * data.knockbackForce);
         }
 
-        /// <summary>CO-OP clients drive the puppet's HP bar from a server-replicated fraction.</summary>
         public void SetHealthBar(float fraction)
         {
             if (healthBar != null) healthBar.Set(fraction);
         }
 
-        /// <summary>Cosmetic-only hit reaction (blood splatter + flash). Shared by the server's local
-        /// reaction and CO-OP clients, which replay it from a server RPC. No HP / knockback here.</summary>
         public void PlayHitFx(in DamageInfo info)
         {
             if (data.bloodPrefab != null && PoolService.Instance != null)
@@ -278,14 +234,10 @@ namespace Biofall.Gameplay
         private void OnDied()
         {
             if (_dead) return;
-            // Drops handled centrally by LootService (listens to TargetDied). Authority-side only
-            // (server/solo); CO-OP clients replay the visuals via PlayDeathFx without re-dropping loot.
             EventBus.Publish(new TargetDied(gameObject));
             PlayDeathFx();
         }
 
-        /// <summary>Death visuals + despawn (Die anim, blood gush, dissolve, then return). Server/solo
-        /// reach it through <see cref="OnDied"/>; CO-OP clients call it directly from a server RPC.</summary>
         public void PlayDeathFx()
         {
             if (_dead) return;
@@ -293,11 +245,10 @@ namespace Biofall.Gameplay
 
             SetFlash(false);
             if (healthBar != null) healthBar.Hide();
-            if (bodyCollider != null) bodyCollider.enabled = false; // corpse stops blocking shots
+            if (bodyCollider != null) bodyCollider.enabled = false;
             if (animator != null) animator.SetTrigger(DieId);
             if (audioSource != null && data.deathSfx != null) audioSource.PlayOneShot(data.deathSfx, data.deathVolume);
 
-            // Big blood gush on death — several splatters around the chest for a gory pop.
             if (data.bloodPrefab != null && PoolService.Instance != null)
             {
                 Vector3 chest = _tf.position + Vector3.up * 1f;
@@ -329,12 +280,11 @@ namespace Biofall.Gameplay
                 }
                 else
                 {
-                    r.SetPropertyBlock(null); // clear override → back to material default
+                    r.SetPropertyBlock(null);
                 }
             }
         }
 
-        // ---- Death dissolve ----
         private void CacheOriginalMaterials()
         {
             if (_renderers == null) return;
@@ -343,11 +293,6 @@ namespace Biofall.Gameplay
                 _originalMats[i] = _renderers[i] != null ? _renderers[i].sharedMaterials : null;
         }
 
-        /// <summary>
-        /// Lazily builds one dissolve material per sub-material (copying base map + tint) and keeps
-        /// them for reuse across lives. Returns false if the shader is missing (caller falls back to
-        /// a plain timed despawn so death still works without the effect).
-        /// </summary>
         private bool BuildDissolveMaterials()
         {
             if (_dissolveMats != null) return true;
@@ -413,7 +358,6 @@ namespace Biofall.Gameplay
 
         private IEnumerator DissolveAndDespawn()
         {
-            // Let the death animation play / corpse settle, then burn it away.
             yield return new WaitForSeconds(dissolveDelay);
             SetDissolveAmount(0f);
             ApplyDissolveMaterials();
@@ -442,13 +386,12 @@ namespace Biofall.Gameplay
 
         private void Despawn()
         {
-            if (SuppressDespawn) return;                                   // CO-OP client puppet — server removes it
-            if (DespawnRequested != null) { DespawnRequested(); return; }  // CO-OP server → NGO despawn
+            if (SuppressDespawn) return;
+            if (DespawnRequested != null) { DespawnRequested(); return; }
             if (PoolService.Instance != null) PoolService.Instance.Despawn(gameObject);
             else gameObject.SetActive(false);
         }
 
-        // ---- Helpers ----
         private void CacheTarget()
         {
             _playerTf = PlayerRegistry.Nearest(_tf.position);

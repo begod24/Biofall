@@ -5,13 +5,9 @@ using Biofall.Gameplay.Mission1;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Observer: shows the "[E] ..." use-prompt when the player is near an interactable.
-    /// Listens to <see cref="InteractPromptChanged"/> — never queries gameplay.
-    /// </summary>
     public sealed class InteractionPromptUI : MonoBehaviour
     {
-        [SerializeField] private GameObject root;   // the visual to show/hide
+        [SerializeField] private GameObject root;
         [SerializeField] private TMP_Text text;
         [SerializeField] private string keyHint = "E";
 

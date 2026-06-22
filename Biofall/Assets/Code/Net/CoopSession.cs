@@ -7,7 +7,6 @@ using Biofall.Core;
 
 namespace Biofall.Net
 {
-    /// <summary>One player's lobby slot, replicated in the <see cref="CoopSession"/> NetworkList.</summary>
     public struct LobbySlot : INetworkSerializable, IEquatable<LobbySlot>
     {
         public ulong ClientId;
@@ -22,13 +21,6 @@ namespace Biofall.Net
         public bool Equals(LobbySlot o) => ClientId == o.ClientId && Ready == o.Ready;
     }
 
-    /// <summary>
-    /// Server-authoritative co-op lobby state, spawned by the host when it starts. Tracks a
-    /// replicated list of connected players + their ready flag (<see cref="Slots"/>), lets any
-    /// client toggle ready (<see cref="ToggleReadyRpc"/>), and lets the host start the match —
-    /// a networked scene load that brings everyone into the game scene together. Persists across
-    /// that load (DontDestroyOnLoad). UI (dev HUD now, real lobby panel next) only reads/sends.
-    /// </summary>
     public sealed class CoopSession : NetworkBehaviour
     {
         public static CoopSession Instance { get; private set; }
@@ -38,7 +30,6 @@ namespace Biofall.Net
 
         public NetworkList<LobbySlot> Slots;
 
-        /// <summary>Raised (all peers) whenever the slot list changes — UI refresh hook.</summary>
         public event Action SlotsChanged;
 
         private bool _gameStarted;
@@ -56,7 +47,7 @@ namespace Biofall.Net
 
             if (IsServer)
             {
-                AddSlot(NetworkManager.LocalClientId); // host's own slot
+                AddSlot(NetworkManager.LocalClientId);
                 NetworkManager.OnClientConnectedCallback += OnClientConnected;
                 NetworkManager.OnClientDisconnectCallback += OnClientDisconnected;
                 NetworkManager.SceneManager.OnSceneEvent += OnSceneEventServer;
@@ -97,7 +88,6 @@ namespace Biofall.Net
                 if (Slots[i].ClientId == id) { Slots.RemoveAt(i); return; }
         }
 
-        /// <summary>Any client flips its own ready flag (server applies it).</summary>
         [Rpc(SendTo.Server)]
         public void ToggleReadyRpc(RpcParams rpc = default)
         {
@@ -119,7 +109,6 @@ namespace Biofall.Net
             return true;
         }
 
-        /// <summary>Host-only: load the game scene for everyone (networked scene management).</summary>
         public void StartGame()
         {
             if (!IsServer) return;

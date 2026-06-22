@@ -5,10 +5,6 @@ using Biofall.Gameplay.Mission1;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Observer: the objectives panel. Shows the main objective and the current sub-objective
-    /// (with a ✓ on finished steps), driven purely by <see cref="MissionPhaseChanged"/>.
-    /// </summary>
     public sealed class MissionObjectivesUI : MonoBehaviour
     {
         [SerializeField] private TMP_Text mainText;

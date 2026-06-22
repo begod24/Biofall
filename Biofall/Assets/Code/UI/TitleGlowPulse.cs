@@ -3,12 +3,6 @@ using TMPro;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Makes a TMP title "breathe": animates the Glow on a per-instance material so the letters
-    /// slowly brighten with a reddish halo and fade back. The base (dark burgundy) face color is
-    /// left untouched — only the glow pulses. Uses a per-instance material, so the shared font
-    /// asset is never modified.
-    /// </summary>
     [RequireComponent(typeof(TMP_Text))]
     public sealed class TitleGlowPulse : MonoBehaviour
     {
@@ -26,8 +20,6 @@ namespace Biofall.UI
         [SerializeField] private float glowOuterMax = 0.70f;
 
         private Material _mat;
-        // Shader.PropertyToID is safe in a static initializer; ShaderUtilities.ID_* is NOT
-        // (its static ctor calls Shader.Find, which is illegal during type initialization).
         private static readonly int GlowColorId = Shader.PropertyToID("_GlowColor");
         private static readonly int GlowPowerId = Shader.PropertyToID("_GlowPower");
         private static readonly int GlowOuterId = Shader.PropertyToID("_GlowOuter");
@@ -38,7 +30,7 @@ namespace Biofall.UI
             if (target == null) target = GetComponent<TMP_Text>();
             if (target == null) return;
 
-            _mat = target.fontMaterial;                  // per-instance clone, shared asset stays intact
+            _mat = target.fontMaterial;
             _mat.EnableKeyword("GLOW_ON");
             _mat.SetColor(GlowColorId, glowColor);
             _mat.SetFloat(GlowInnerId, 0.05f);
@@ -49,7 +41,7 @@ namespace Biofall.UI
             if (_mat == null) return;
 
             float phase = Time.unscaledTime * (Mathf.PI * 2f / Mathf.Max(0.01f, period));
-            float t = Mathf.Sin(phase) * 0.5f + 0.5f;    // 0..1 breathing
+            float t = Mathf.Sin(phase) * 0.5f + 0.5f;
 
             _mat.SetColor(GlowColorId, glowColor);
             _mat.SetFloat(GlowPowerId, Mathf.Lerp(glowPowerMin, glowPowerMax, t));

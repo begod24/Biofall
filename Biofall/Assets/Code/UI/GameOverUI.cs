@@ -8,10 +8,6 @@ using Biofall.Net;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Observer: shows a Game Over panel on <see cref="PlayerDied"/> with Restart and Main Menu.
-    /// Restart also works via Enter/Space. Pure UI — it only listens, it never drives gameplay.
-    /// </summary>
     public sealed class GameOverUI : MonoBehaviour
     {
         [SerializeField] private GameObject panel;
@@ -50,13 +46,10 @@ namespace Biofall.UI
 
         private void OnPlayerDied(PlayerDied _)
         {
-            // Solo only — in co-op PlayerDied isn't published (HP 0 = downed, see CoopPlayerLife).
-            // Let the death play out for a moment before showing the panel.
             if (showDelay > 0f) StartCoroutine(ShowAfterDelay());
             else Show();
         }
 
-        // CO-OP: the whole squad is down/dead — this is the real Game Over for the run.
         private void OnTeamWiped(TeamWiped _)
         {
             if (_shown) return;
@@ -74,10 +67,8 @@ namespace Biofall.UI
         {
             _shown = true;
             if (panel != null) panel.SetActive(true);
-            UiOverlay.Active = true;     // release the OS cursor for the buttons
+            UiOverlay.Active = true;
             Cursor.visible = true;
-            // Co-op death = downed/revive (Phase E); a lone local Restart would desync the networked
-            // mission, so disable it and let the player leave via Main Menu. Solo keeps Restart.
             if (restartButton != null) restartButton.interactable = !NetSession.InCoop;
             if (sfxSource != null && gameOverSfx != null)
                 sfxSource.PlayOneShot(gameOverSfx, gameOverVolume);
@@ -85,7 +76,7 @@ namespace Biofall.UI
 
         private void Update()
         {
-            if (!_shown || NetSession.InCoop) return; // Enter/Space restart is solo-only
+            if (!_shown || NetSession.InCoop) return;
             var keyboard = Keyboard.current;
             if (keyboard != null && (keyboard.enterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame))
                 Restart();
@@ -93,7 +84,7 @@ namespace Biofall.UI
 
         private void Restart()
         {
-            if (NetSession.InCoop) return; // guarded: co-op restart is host-driven (Phase E)
+            if (NetSession.InCoop) return;
             Time.timeScale = 1f;
             UiOverlay.Active = false;
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);

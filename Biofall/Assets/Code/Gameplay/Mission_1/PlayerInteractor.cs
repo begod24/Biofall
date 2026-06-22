@@ -5,7 +5,6 @@ using Biofall.UI;
 
 namespace Biofall.Gameplay.Mission1
 {
-    /// <summary>Prompt text changed — UI shows/hides the "[E] ..." hint. Empty/!Visible hides it.</summary>
     public readonly struct InteractPromptChanged
     {
         public readonly string Prompt;
@@ -18,12 +17,6 @@ namespace Biofall.Gameplay.Mission1
         }
     }
 
-    /// <summary>
-    /// Sits on the Player. Each frame it finds the nearest usable <see cref="IInteractable"/>
-    /// within range, raises the on-screen prompt, and on E (<see cref="PlayerInput.InteractPressed"/>)
-    /// runs that interaction. Stations register themselves into the static list while enabled,
-    /// so this never uses FindObjectsOfType. Single responsibility: route the interact intent.
-    /// </summary>
     [RequireComponent(typeof(PlayerInput))]
     public sealed class PlayerInteractor : MonoBehaviour
     {
@@ -50,7 +43,6 @@ namespace Biofall.Gameplay.Mission1
 
         private void Update()
         {
-            // No interacting while a menu overlay is up or the game is paused.
             if (UiOverlay.Active || Time.timeScale <= 0f)
             {
                 SetPrompt(null, false);
@@ -95,7 +87,6 @@ namespace Biofall.Gameplay.Mission1
 
         private void SetPrompt(string prompt, bool visible)
         {
-            // Only publish on change — avoids per-frame EventBus chatter.
             if (visible == _promptVisible && (!visible || prompt == _lastPrompt)) return;
             _promptVisible = visible;
             _lastPrompt = prompt;

@@ -6,13 +6,6 @@ using Biofall.Core;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// The ARMORY / upgrade shop. Spends the persistent <see cref="PlayerProgression.BankedSamples"/>
-    /// pool on permanent upgrades between missions. Builds one <see cref="UpgradeRowUI"/> per catalog
-    /// entry by cloning <see cref="rowTemplate"/>, refreshes live on every purchase (the static
-    /// <see cref="PlayerProgression.Changed"/> event), and opens/closes its own panel. Available in the
-    /// main menu, so it serves both solo and co-op (progression is per-player either way).
-    /// </summary>
     public sealed class UpgradeShopUI : MonoBehaviour
     {
         [SerializeField] private GameObject panel;
@@ -73,7 +66,7 @@ namespace Biofall.UI
 
         private void Buy(UpgradeData data)
         {
-            PlayerProgression.TryPurchase(data); // success → Changed → RefreshAll
+            PlayerProgression.TryPurchase(data);
         }
 
         private void OnChanged() => RefreshAll();

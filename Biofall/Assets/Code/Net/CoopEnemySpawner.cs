@@ -7,21 +7,13 @@ using Biofall.Gameplay;
 
 namespace Biofall.Net
 {
-    /// <summary>
-    /// CO-OP server-only horde spawner. Mirrors the solo <see cref="EnemySpawner"/> reachable-point
-    /// logic (NavMesh + path-to-player + off-screen preference) but spawns the NETWORKED
-    /// <c>Enemy_Coop</c> prefab through NGO so the horde replicates to every client. Lives in the
-    /// co-op scene on all peers but only acts on the server; on clients/solo it is inert and the
-    /// enemies arrive purely via <see cref="NetworkObject"/> replication.
-    /// </summary>
     public sealed class CoopEnemySpawner : MonoBehaviour
     {
-        /// <summary>One networked enemy archetype + how likely it is to be picked for a spawn.</summary>
         [System.Serializable]
         public struct WeightedEnemy
         {
-            public GameObject prefab;     // networked *_Coop prefab (NetworkObject + CoopEnemy)
-            [Min(0f)] public float weight; // relative spawn chance (0 = never)
+            public GameObject prefab;
+            [Min(0f)] public float weight;
         }
 
         [Tooltip("Networked enemy prefab (NetworkObject + CoopEnemy). Used when 'Enemy Mix' is empty (legacy single-type spawn).")]
@@ -49,13 +41,11 @@ namespace Biofall.Net
 
         private void Update()
         {
-            // The object exists on every peer; start the loop once a co-op SERVER is actually live.
             if (_started || !NetSession.IsServer) return;
             _started = true;
             if (spawnOnStart) StartCoroutine(Run());
         }
 
-        /// <summary>Manually trigger one batch (e.g. from a networked MissionDirector in Phase D).</summary>
         public void SpawnWaveNow()
         {
             if (NetSession.IsServer) StartCoroutine(SpawnBatch());
@@ -64,7 +54,7 @@ namespace Biofall.Net
         private IEnumerator Run()
         {
             _path ??= new NavMeshPath();
-            yield return null; // let players/NavMesh settle after the networked scene load
+            yield return null;
 
             do
             {
@@ -101,12 +91,10 @@ namespace Biofall.Net
             GameObject go = Instantiate(prefab, pos, Quaternion.identity);
             var no = go.GetComponent<NetworkObject>();
             if (no == null) { Destroy(go); return false; }
-            no.Spawn(true); // server-spawn → replicate to all clients
+            no.Spawn(true);
             return true;
         }
 
-        /// <summary>Weighted-random archetype from <see cref="enemyMix"/>; falls back to the single
-        /// <see cref="coopEnemyPrefab"/> when the mix is empty/zero-weight (legacy behaviour).</summary>
         private GameObject PickPrefab()
         {
             if (enemyMix == null || enemyMix.Length == 0) return coopEnemyPrefab;

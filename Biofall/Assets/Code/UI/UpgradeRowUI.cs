@@ -6,12 +6,6 @@ using Biofall.Core;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// One row in the upgrade shop. Auto-wires its child widgets by name (Name / Level / Cost / Desc
-    /// labels + a BuyButton) so it needs no inspector references — the <see cref="UpgradeShopUI"/>
-    /// clones a template row and calls <see cref="Bind"/>. Pure view: it reads
-    /// <see cref="PlayerProgression"/> and forwards the buy click; the shop owns the purchase.
-    /// </summary>
     public sealed class UpgradeRowUI : MonoBehaviour
     {
         private TMP_Text _name, _level, _cost, _desc;

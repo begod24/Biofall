@@ -4,11 +4,6 @@ using Biofall.Core;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Observer: reflects player HP from <see cref="PlayerDamaged"/> / <see cref="PlayerDied"/>.
-    /// Never reads or changes gameplay. The bar is driven by scaling the fill's X (solid
-    /// Image, no sprite needed); the fill must be left-pivoted so it shrinks from the right.
-    /// </summary>
     public sealed class HealthBarUI : MonoBehaviour
     {
         [SerializeField] private RectTransform fill;

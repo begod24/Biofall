@@ -4,10 +4,6 @@ using Biofall.Core;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Main-menu music loop: fades in slowly, plays through, fades out near the end, then waits
-    /// <see cref="gapSeconds"/> before playing again. Kept quiet via <see cref="targetVolume"/>.
-    /// </summary>
     [RequireComponent(typeof(AudioSource))]
     public sealed class MenuMusic : MonoBehaviour
     {
@@ -18,7 +14,7 @@ namespace Biofall.UI
         [Tooltip("Silence between the end of one play and the next.")]
         [SerializeField] private float gapSeconds = 30f;
 
-        private float _fade01;   // current fade fraction (0..1); final volume = _fade01 * targetVolume * MusicVolume
+        private float _fade01;
 
         private void Awake()
         {

@@ -3,10 +3,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Pooled one-shot ParticleSystem (Object Pooling). Plays on spawn and returns itself to the
-    /// pool once the burst has finished — so blood/impact VFX never allocate in combat.
-    /// </summary>
     [RequireComponent(typeof(ParticleSystem))]
     public sealed class PooledParticle : MonoBehaviour, IPoolable
     {

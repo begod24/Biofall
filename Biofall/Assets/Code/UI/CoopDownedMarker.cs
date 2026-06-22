@@ -5,17 +5,10 @@ using Biofall.Net;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// On-screen indicator for a DOWNED teammate (co-op). Tracks the nearest downed teammate, projects
-    /// their world position onto the screen and shows a marker there — on a Screen-Space-Overlay canvas
-    /// so it draws over everything ("through walls"). When the teammate is off-screen the marker clamps
-    /// to the screen edge and an arrow rotates to point toward them. Also plays a one-shot "man down"
-    /// SFX on the <see cref="TeammateDowned"/> event. Inert in solo / when nobody is down / unwired.
-    /// </summary>
     public sealed class CoopDownedMarker : MonoBehaviour
     {
-        [SerializeField] private RectTransform marker; // icon shown at/near the teammate
-        [SerializeField] private RectTransform arrow;  // points toward the teammate when off-screen
+        [SerializeField] private RectTransform marker;
+        [SerializeField] private RectTransform arrow;
         [SerializeField] private TMP_Text label;
         [SerializeField] private AudioSource sfxSource;
         [SerializeField] private AudioClip manDownSfx;
@@ -63,7 +56,6 @@ namespace Biofall.UI
             if (marker != null) marker.position = clamped;
             if (label != null) label.text = "DOWN";
 
-            // Arrow only when off-screen, rotated from screen centre toward the target.
             if (arrow != null)
             {
                 arrow.gameObject.SetActive(!onScreen);
@@ -79,7 +71,6 @@ namespace Biofall.UI
             }
         }
 
-        /// <summary>Nearest DOWNED teammate to the local player (excludes our own body).</summary>
         private static Transform NearestDowned()
         {
             var all = CoopPlayerLife.All;

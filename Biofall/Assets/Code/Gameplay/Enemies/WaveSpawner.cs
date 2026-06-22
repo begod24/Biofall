@@ -5,14 +5,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Sandbox wave director. Spawns discrete waves through the existing pooled <see cref="EnemyManager"/>
-    /// (no changes to core enemy code): each wave is bigger than the last, screamers join from a later
-    /// wave on, and the next wave only starts once the current one is fully cleared (after a short break).
-    /// The number of zombies alive at once is capped at <see cref="maxConcurrent"/> (up to ~100). Spawns
-    /// off-screen around the player and snaps points to the NavMesh. Exposes <see cref="CurrentWave"/> +
-    /// <see cref="WaveStarted"/> for the HUD.
-    /// </summary>
     public sealed class WaveSpawner : MonoBehaviour
     {
         [Header("Prefabs")]
@@ -24,7 +16,7 @@ namespace Biofall.Gameplay
 
         [Header("Waves")]
         [SerializeField] private int baseZombies = 8;
-        [SerializeField] private int zombieGrowth = 4;        // +per wave
+        [SerializeField] private int zombieGrowth = 4;
         [Tooltip("Max enemies alive at once (hard cap — spawning throttles to keep under this).")]
         [SerializeField] private int maxConcurrent = 100;
         [SerializeField] private int screamerStartWave = 3;
@@ -52,9 +44,7 @@ namespace Biofall.Gameplay
         [SerializeField] private float viewportMargin = 0.08f;
         [SerializeField] private int placementTries = 12;
 
-        /// <summary>Current wave number (1-based); 0 before the first wave.</summary>
         public static int CurrentWave { get; private set; }
-        /// <summary>Fired when a new wave begins, with the wave number.</summary>
         public static event System.Action<int> WaveStarted;
 
         private Camera _camera;
@@ -68,7 +58,7 @@ namespace Biofall.Gameplay
         private IEnumerator Run()
         {
             CurrentWave = 0;
-            yield return null;                 // let PlayerRegistry / EnemyManager initialise
+            yield return null;
             _camera = Camera.main;
             _path ??= new NavMeshPath();
             var wait = new WaitForSeconds(spawnInterval);
@@ -78,7 +68,6 @@ namespace Biofall.Gameplay
                 CurrentWave++;
                 WaveStarted?.Invoke(CurrentWave);
 
-                // Per-type counts for this wave (a variant is skipped if its prefab is missing).
                 int remZ = baseZombies + (CurrentWave - 1) * zombieGrowth;
                 int remS = (screamerPrefab != null && CurrentWave >= screamerStartWave)
                     ? Mathf.Min(CurrentWave - screamerStartWave + 1, maxScreamers) : 0;
@@ -99,7 +88,6 @@ namespace Biofall.Gameplay
                             continue;
                         }
 
-                        // Pick a remaining type at random, weighted by how many are left.
                         int total = remZ + remS + remR + remT;
                         int r = Random.Range(0, total);
                         Enemy spawned;
@@ -108,21 +96,17 @@ namespace Biofall.Gameplay
                         else if (r < remZ + remR + remT) { spawned = mgr.Spawn(tankPrefab, pos, Quaternion.identity); remT--; }
                         else { spawned = mgr.Spawn(screamerPrefab, pos, Quaternion.identity); remS--; }
 
-                        // Sandbox: hunt the player from spawn instead of wandering.
                         if (chaseFromSpawn && spawned != null) spawned.Aggro();
                     }
                     yield return wait;
                 }
 
-                // Wait until everything from this wave is gone, then take a breather.
                 while (EnemyManager.Instance != null && EnemyManager.Instance.ActiveCount > 0)
                     yield return null;
 
                 if (waveBreak > 0f) yield return new WaitForSeconds(waveBreak);
             }
         }
-
-        // ---- placement (mirrors EnemySpawner so core code is untouched) ----
 
         private Vector3 PickOffscreenPoint(Vector3 center)
         {

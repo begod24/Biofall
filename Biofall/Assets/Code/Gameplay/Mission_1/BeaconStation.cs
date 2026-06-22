@@ -4,14 +4,6 @@ using Biofall.Net;
 
 namespace Biofall.Gameplay.Mission1
 {
-    /// <summary>
-    /// Mission 1 — main objective. Unlocked once the generator is on (it listens for
-    /// <see cref="GeneratorActivated"/>). The player presses E at the beacon to switch it
-    /// on: the red signal field (custom shader) lights up, the horde intensifies, and the
-    /// charge bar fills ONLY while the player stays inside <see cref="defenseRadius"/>
-    /// (it freezes, never drops, when they step out). At full charge it publishes
-    /// <see cref="BeaconCharged"/>. Self-contained; the director handles wave intensity.
-    /// </summary>
     public sealed class BeaconStation : MonoBehaviour, IInteractable
     {
         [Header("Defense")]
@@ -29,15 +21,13 @@ namespace Biofall.Gameplay.Mission1
         [SerializeField] private AudioClip activateSfx;
         [Range(0f, 1f)] [SerializeField] private float activateVolume = 0.8f;
 
-        private bool _unlocked;   // generator powered → beacon can be switched on
-        private bool _activated;  // player switched it on → charging
-        private bool _charged;    // fully charged
-        private float _progress;  // 0..1
+        private bool _unlocked;
+        private bool _activated;
+        private bool _charged;
+        private float _progress;
 
-        /// <summary>True while the beacon is charging — the director ramps spawns during this.</summary>
         public bool IsCharging => _activated && !_charged;
 
-        // IInteractable ---------------------------------------------------
         public bool CanInteract => _unlocked && !_activated;
         public string Prompt => prompt;
         public Vector3 Position => transform.position;
@@ -45,7 +35,6 @@ namespace Biofall.Gameplay.Mission1
         public void Interact(GameObject interactor)
         {
             if (!CanInteract) return;
-            // CO-OP client: ask the server to switch the beacon on.
             if (NetSession.InCoop && !NetSession.IsServer)
             {
                 CoopMission.Instance?.RequestBeaconRpc();
@@ -54,14 +43,12 @@ namespace Biofall.Gameplay.Mission1
             ServerInteract();
         }
 
-        /// <summary>Authority-side (server/solo) beacon switch-on.</summary>
         public void ServerInteract()
         {
             if (!CanInteract) return;
-            EventBus.Publish(new BeaconActivated());            // fact → _activated + VFX (here + mirrored)
+            EventBus.Publish(new BeaconActivated());
             EventBus.Publish(new MissionProgress(barLabel, 0f, true));
         }
-        // -----------------------------------------------------------------
 
         private void Awake()
         {
@@ -86,7 +73,6 @@ namespace Biofall.Gameplay.Mission1
 
         private void OnGeneratorActivated(GeneratorActivated _) => _unlocked = true;
 
-        // Visuals/state driven by the facts so every peer (server + mirrored clients) stays in sync.
         private void OnBeaconActivatedFact(BeaconActivated _)
         {
             if (_activated) return;
@@ -100,7 +86,6 @@ namespace Biofall.Gameplay.Mission1
 
         private void Update()
         {
-            // CO-OP clients don't run the charge timer — the server owns it and mirrors progress.
             if (NetSession.InCoop && !NetSession.IsServer) return;
             if (!_activated || _charged) return;
 
@@ -114,16 +99,10 @@ namespace Biofall.Gameplay.Mission1
             }
             else
             {
-                // Someone is outside the ring: freeze the bar and tell the squad to regroup.
-                // (Value held, not dropped.) Solo: this is just "RETURN TO THE BEACON".
                 EventBus.Publish(new MissionProgress("REGROUP AT THE BEACON", _progress, true));
             }
         }
 
-        /// <summary>Defense holds only while EVERY up (non-downed) player is inside the zone — both
-        /// teammates must stand the beacon together (co-op decision). A downed teammate doesn't block
-        /// it (they can't stand), so a lone survivor can keep holding while the other is rescued.
-        /// Solo = the single player must be in the ring (unchanged).</summary>
         private bool AllAlivePlayersInZone(float radius)
         {
             if (PlayerRegistry.AliveCount == 0) return false;

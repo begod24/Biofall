@@ -3,10 +3,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Reacts to <see cref="PlayerDied"/>: plays the death animation (Die trigger) and locks the
-    /// player — disables movement, aim and shooting. Game Over UI is handled separately (Observer).
-    /// </summary>
     public sealed class PlayerDeath : MonoBehaviour
     {
         [SerializeField] private Animator animator;

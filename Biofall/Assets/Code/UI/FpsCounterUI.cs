@@ -3,10 +3,6 @@ using TMPro;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Smoothed frames-per-second readout. Independent of gameplay and the EventBus —
-    /// it just samples frame time and refreshes the label on a fixed interval.
-    /// </summary>
     public sealed class FpsCounterUI : MonoBehaviour
     {
         [SerializeField] private TMP_Text text;

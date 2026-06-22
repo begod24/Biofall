@@ -4,12 +4,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Drops a pooled blood decal under each enemy that dies (Observer of <see cref="TargetDied"/>).
-    /// The decals are flat unlit quads (SRP-batched) and the live count is bounded by <see cref="maxPools"/>
-    /// via a ring buffer — the oldest is recycled past the cap — so blood never accumulates into a
-    /// performance problem regardless of how many enemies die.
-    /// </summary>
     public sealed class BloodPoolService : MonoBehaviour
     {
         [SerializeField] private GameObject bloodPoolPrefab;
@@ -43,13 +37,11 @@ namespace Biofall.Gameplay
                 pos = hit.point;
             pos.y += groundOffset;
 
-            // Random yaw spins the flat quad in its own plane for variety.
             Quaternion rot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
             GameObject pool = PoolService.Instance.Spawn(bloodPoolPrefab, pos, rot);
             if (pool == null) return;
             _active.Enqueue(pool);
 
-            // Hard cap: recycle the oldest so the count never grows unbounded.
             while (_active.Count > maxPools)
             {
                 var oldest = _active.Dequeue();

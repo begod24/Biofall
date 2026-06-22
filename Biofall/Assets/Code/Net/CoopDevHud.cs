@@ -4,11 +4,6 @@ using UnityEngine;
 
 namespace Biofall.Net
 {
-    /// <summary>
-    /// TEMPORARY developer HUD for testing co-op (Phase A/B) via OnGUI: Host, LAN browser
-    /// (Find Hosts → discovered list → Join), and direct-IP Join. Replaced by the real menu
-    /// lobby panel later in Phase B — this is only for quick connect/discovery smoke tests.
-    /// </summary>
     public sealed class CoopDevHud : MonoBehaviour
     {
         [SerializeField] private string serverIp = "127.0.0.1";
@@ -32,7 +27,7 @@ namespace Biofall.Net
 
         private void OnHostDiscovered(DiscoveredHost h)
         {
-            foreach (var e in _hosts) if (e.Address == h.Address && e.Port == h.Port) return; // dedup
+            foreach (var e in _hosts) if (e.Address == h.Address && e.Port == h.Port) return;
             _hosts.Add(h);
         }
 

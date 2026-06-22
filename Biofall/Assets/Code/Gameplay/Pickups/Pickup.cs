@@ -4,17 +4,6 @@ using Biofall.Net;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Base for pooled, ground pickups (Object Pooling). Spins/bobs its visual child, optionally
-    /// auto-despawns after a lifetime (set lifetime &lt;= 0 to stay on the ground forever), and
-    /// collects when the player walks close (distance check — no physics).
-    /// Subclasses implement <see cref="OnCollected"/>.
-    ///
-    /// In CO-OP the walk-over collect + lifetime + pool-despawn are skipped here and driven by the
-    /// networked <see cref="Net.CoopPickup"/> bridge instead (server-authoritative collection so the
-    /// reward credits only the collecting player). This component then just animates the visual on
-    /// every peer. Solo (NetSession.InCoop == false) is untouched.
-    /// </summary>
     public abstract class Pickup : MonoBehaviour, IPoolable
     {
         [SerializeField] protected float collectRadius = 1.2f;
@@ -40,16 +29,8 @@ namespace Biofall.Gameplay
         public void OnSpawned() => _timer = lifetime;
         public void OnDespawned() { }
 
-        /// <summary>Collect distance (incl. the local player's persistent "Scavenger" upgrade), exposed
-        /// so <see cref="Net.CoopPickup"/> can reuse it in co-op — per-player there, since the bonus is
-        /// read from the per-process <see cref="PlayerProgression"/>.</summary>
         public float CollectRadius => collectRadius + PlayerProgression.PickupRadiusBonus;
 
-        /// <summary>
-        /// Grant this pickup's reward on the LOCAL machine. In co-op the server-authoritative
-        /// <see cref="Net.CoopPickup"/> calls this only on the player who collected it, so currency /
-        /// ammo / grenades / health stay per-player. Solo collects directly via <see cref="OnCollected"/>.
-        /// </summary>
         public void ApplyReward() => OnCollected();
 
         private void Update()
@@ -62,7 +43,6 @@ namespace Biofall.Gameplay
                 visual.localPosition = lp;
             }
 
-            // Co-op: CoopPickup owns collection + lifetime (server-authoritative). Visual only here.
             if (NetSession.InCoop) return;
 
             if (PlayerRegistry.HasPlayer)

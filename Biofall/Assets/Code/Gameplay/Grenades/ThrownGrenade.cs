@@ -5,12 +5,6 @@ using Biofall.Net;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// A live, pooled grenade. Lobbed by <see cref="GrenadeThrower"/> via <see cref="Launch"/> (ballistic
-    /// arc), counts down a fuse, then explodes: radial damage to everything on <see cref="damageMask"/>
-    /// (enemies only — no friendly fire), a pooled explosion VFX, a camera shake and an SFX. Pooled, so it
-    /// returns itself to the PoolService after blowing up.
-    /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public sealed class ThrownGrenade : MonoBehaviour, IPoolable
     {
@@ -38,7 +32,6 @@ namespace Biofall.Gameplay
 
         private void Awake() => _rb = GetComponent<Rigidbody>();
 
-        // ---- Pooling lifecycle ----
         public void OnSpawned()
         {
             _exploded = false;
@@ -49,13 +42,11 @@ namespace Biofall.Gameplay
 
         public void OnDespawned() { }
 
-        /// <summary>Lob toward <paramref name="target"/> so it arrives in <paramref name="flightTime"/> seconds.</summary>
         public void Launch(Vector3 target, float flightTime)
         {
             float t = Mathf.Max(0.2f, flightTime);
             Vector3 g = Physics.gravity;
             Vector3 disp = target - transform.position;
-            // Solve disp = v*t + 0.5*g*t^2  →  v = (disp - 0.5*g*t^2) / t
             _rb.linearVelocity = (disp - 0.5f * g * t * t) / t;
             _rb.angularVelocity = Random.insideUnitSphere * 8f;
         }
@@ -83,16 +74,14 @@ namespace Biofall.Gameplay
 
                 if (NetSession.InCoop)
                 {
-                    // CO-OP: enemies are server-authoritative — request the hit, the server applies HP
-                    // (mirrors Weapon.cs). The blast still runs locally on the thrower; only damage is routed.
                     var coopEnemy = s_hits[i].GetComponentInParent<CoopEnemy>();
-                    if (coopEnemy == null || !s_seenCoop.Add(coopEnemy)) continue; // one hit per enemy
+                    if (coopEnemy == null || !s_seenCoop.Add(coopEnemy)) continue;
                     coopEnemy.DamageRpc(damage, s_hits[i].transform.position, dir);
                 }
                 else
                 {
                     var dmg = s_hits[i].GetComponentInParent<IDamageable>();
-                    if (dmg == null || !s_seen.Add(dmg)) continue; // one hit per target
+                    if (dmg == null || !s_seen.Add(dmg)) continue;
                     dmg.TakeDamage(new DamageInfo(damage, center, dir, gameObject));
                 }
             }

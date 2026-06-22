@@ -4,12 +4,6 @@ using Biofall.Net;
 
 namespace Biofall.Gameplay.Mission1
 {
-    /// <summary>
-    /// Mission 1 — final objective. Opens once the beacon is charged (listens for
-    /// <see cref="BeaconCharged"/>). The player must stand inside <see cref="extractRadius"/>
-    /// for <see cref="extractTime"/> seconds; the HUD counts down. Stepping out resets the
-    /// countdown. When it reaches zero it publishes <see cref="MissionCompleted"/>.
-    /// </summary>
     public sealed class ExtractionPoint : MonoBehaviour
     {
         [Header("Extraction")]
@@ -45,7 +39,6 @@ namespace Biofall.Gameplay.Mission1
 
         private void Update()
         {
-            // CO-OP clients don't run the countdown — the server owns it and mirrors progress.
             if (NetSession.InCoop && !NetSession.IsServer) return;
             if (!_open || _done) return;
 
@@ -60,7 +53,6 @@ namespace Biofall.Gameplay.Mission1
             }
             else if (_elapsed > 0f)
             {
-                // Left the pad — reset the countdown.
                 _elapsed = 0f;
                 _lastShownSecond = -1;
                 EventBus.Publish(new MissionProgress("REACH THE EXTRACTION", 0f, true));
@@ -78,9 +70,6 @@ namespace Biofall.Gameplay.Mission1
             EventBus.Publish(new MissionProgress(_label, Mathf.Clamp01(_elapsed / extractTime), true));
         }
 
-        /// <summary>Team extract: every UP (non-downed) player must be on the pad (solo = the one
-        /// player). Downed/dead teammates don't block extraction — the survivors can still leave,
-        /// and stepping onto the pad won't be possible for a body that can't move.</summary>
         private bool AllPlayersInZone(float radius)
         {
             var all = PlayerRegistry.All;

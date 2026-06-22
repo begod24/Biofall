@@ -4,10 +4,6 @@ using Biofall.Core;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Observer: shows collected Bio Samples from <see cref="BioSamplesChanged"/>.
-    /// Pure listener — never touches the wallet.
-    /// </summary>
     public sealed class CurrencyUI : MonoBehaviour
     {
         [SerializeField] private TMP_Text text;

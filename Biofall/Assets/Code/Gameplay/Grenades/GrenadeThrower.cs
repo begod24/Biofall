@@ -3,11 +3,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Throws a pooled grenade toward the cursor (G). Pulls the target point from <see cref="PlayerAim"/>,
-    /// spends one from <see cref="GrenadeInventory"/>, and lobs the grenade so it lands near the cursor
-    /// just as its fuse runs out. No explosion logic here — that lives on the grenade.
-    /// </summary>
     [RequireComponent(typeof(PlayerInput))]
     [RequireComponent(typeof(GrenadeInventory))]
     public sealed class GrenadeThrower : MonoBehaviour
@@ -35,10 +30,10 @@ namespace Biofall.Gameplay
 
         private void Update()
         {
-            if (Time.timeScale <= 0f) return;          // paused
+            if (Time.timeScale <= 0f) return;
             if (_input == null || !_input.GrenadePressed) return;
             if (grenadePrefab == null || PoolService.Instance == null) return;
-            if (!_inventory.TryConsume()) return;       // empty pouch
+            if (!_inventory.TryConsume()) return;
 
             Vector3 origin = transform.position + Vector3.up * originHeight + transform.forward * forwardOffset;
             Vector3 target = _aim != null ? _aim.AimPoint : transform.position + transform.forward * fallbackDistance;

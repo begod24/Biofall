@@ -6,16 +6,6 @@ using Biofall.Gameplay.Mission1;
 
 namespace Biofall.Net
 {
-    /// <summary>
-    /// CO-OP mission authority + mirror (scene NetworkObject in the co-op mission scene; solo never
-    /// has it). The real <see cref="MissionDirector"/> + stations run normally on the SERVER and talk
-    /// over the local EventBus exactly like solo; this component forwards their results to clients:
-    ///   • phase  → a server-written <see cref="NetworkVariable{T}"/> (also syncs late-joiners),
-    ///   • facts  (generator on / beacon on / beacon charged / extracted) → <see cref="FactClientRpc"/>,
-    ///   • the shared progress bar → throttled <see cref="ProgressClientRpc"/>.
-    /// Clients re-publish each onto their LOCAL EventBus, so the existing HUD + station VFX react
-    /// unchanged. It also routes client interaction requests (press E) back to the server stations.
-    /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     public sealed class CoopMission : NetworkBehaviour
     {
@@ -29,7 +19,6 @@ namespace Biofall.Net
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server);
 
-        // Latest progress-bar state (server), pushed to clients at a capped rate.
         private string _progLabel;
         private float _progValue;
         private bool _progActive;
@@ -52,7 +41,7 @@ namespace Biofall.Net
             else
             {
                 _phase.OnValueChanged += OnPhaseClient;
-                EventBus.Publish(new MissionPhaseChanged(_phase.Value)); // initialise the client HUD
+                EventBus.Publish(new MissionPhaseChanged(_phase.Value));
             }
         }
 
@@ -75,8 +64,6 @@ namespace Biofall.Net
             }
         }
 
-        // ---- server: local EventBus → network ----
-
         private void OnPhaseServer(MissionPhaseChanged e) => _phase.Value = e.Phase;
 
         private void OnProgressServer(MissionProgress e)
@@ -96,8 +83,6 @@ namespace Biofall.Net
         {
             if (!IsServer || !_progDirty) return;
 
-            // Continuous bars (defense/extraction) publish every frame on the server — cap the
-            // network rate to ~10 Hz, but push discrete hide/show events immediately.
             _progSendTimer -= Time.deltaTime;
             if (_progActive && _progSendTimer > 0f) return;
 
@@ -105,8 +90,6 @@ namespace Biofall.Net
             _progDirty = false;
             ProgressClientRpc(new FixedString64Bytes(_progLabel ?? string.Empty), _progValue, _progActive);
         }
-
-        // ---- clients: network → local EventBus ----
 
         private void OnPhaseClient(MissionPhase _, MissionPhase current) =>
             EventBus.Publish(new MissionPhaseChanged(current));
@@ -129,8 +112,6 @@ namespace Biofall.Net
                 case 3: EventBus.Publish(new MissionCompleted()); break;
             }
         }
-
-        // ---- client → server interaction requests ----
 
         [Rpc(SendTo.Server)]
         public void RequestGeneratorRpc()

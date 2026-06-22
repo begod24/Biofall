@@ -9,12 +9,6 @@ using Biofall.UI;
 
 namespace Biofall.EditorTools
 {
-    /// <summary>
-    /// One-shot: rebuilds the main-menu Settings panel with Resolution + Display-mode dropdowns,
-    /// an Apply button and Master/Music/Camera-shake sliders, wires them into MainMenuUI, and adds
-    /// "SIGMA TEAM" to the Credits panel. Opens MainMenu additively so it never disturbs the open scene.
-    /// Run via Tools/Biofall/Setup Settings UI.
-    /// </summary>
     public static class BiofallSettingsUI
     {
         const string ScenePath = "Assets/Scenes/MainMenu.unity";
@@ -65,11 +59,9 @@ namespace Biofall.EditorTools
 
         static void BuildSettings(Transform panel, SerializedObject menuSo)
         {
-            // Wipe existing children (old title / volume slider / shake button / back), keep the panel itself.
             for (int i = panel.childCount - 1; i >= 0; i--)
                 Object.DestroyImmediate(panel.GetChild(i).gameObject);
 
-            // Vertical list filling the panel.
             var list = NewRect("OptionsList", panel);
             Stretch(list, 24, 24, 24, 24);
             var v = list.gameObject.AddComponent<VerticalLayoutGroup>();
@@ -79,7 +71,6 @@ namespace Biofall.EditorTools
             v.childControlWidth = true; v.childForceExpandWidth = true;
             v.childControlHeight = true; v.childForceExpandHeight = false;
 
-            // Header.
             var header = MakeLabel(list, "SETTINGS", 48, TextAlignmentOptions.Center);
             header.fontStyle = FontStyles.Bold;
             Le(header.gameObject, -1, 64);
@@ -100,8 +91,6 @@ namespace Biofall.EditorTools
             Set(menuSo, "shakeSlider", shake);
             Set(menuSo, "settingsBackButton", back);
         }
-
-        // ---- rows ----
 
         static RectTransform MakeRow(Transform parent, float height, TextAnchor align)
         {
@@ -166,8 +155,6 @@ namespace Biofall.EditorTools
             return bGo.GetComponent<Button>();
         }
 
-        // ---- credits ----
-
         static void AddSigmaTeam(Transform creditsPanel)
         {
             var texts = creditsPanel.GetComponentsInChildren<TMP_Text>(true);
@@ -179,12 +166,9 @@ namespace Biofall.EditorTools
                     return;
                 }
             }
-            // Fallback: no name text found — add a standalone line.
             var lbl = MakeLabel(creditsPanel, "SIGMA TEAM", 32, TextAlignmentOptions.Center);
             Stretch((RectTransform)lbl.transform, 0, 0, 0, 0);
         }
-
-        // ---- helpers ----
 
         static RectTransform NewRect(string name, Transform parent)
         {

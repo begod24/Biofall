@@ -3,11 +3,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Zombie-Shooter style top-down camera: perspective, fixed downward tilt (~60°),
-    /// smoothly follows the player and biases the framing toward the cursor (lookahead).
-    /// Pulls the target from <see cref="PlayerRegistry"/> so it works without manual wiring.
-    /// </summary>
     public sealed class TopDownCamera : MonoBehaviour
     {
         [Header("Target")]
@@ -43,8 +38,6 @@ namespace Biofall.Gameplay
             transform.rotation = Quaternion.Euler(pitch, 0f, 0f);
         }
 
-        /// <summary>Force the follow target — co-op uses this to lock onto the LOCAL owned player
-        /// (so the camera never grabs a remote replica). Solo never calls it and keeps using PlayerRegistry.</summary>
         public void SetTarget(Transform t) => target = t;
 
         private void OnEnable()
@@ -63,10 +56,9 @@ namespace Biofall.Gameplay
         {
             float intensity = GameSettings.CameraShakeIntensity;
             if (intensity <= 0f) return;
-            if (e.Amount > 0f) _shake = shakeAmplitude * intensity; // ignore the initial 0-damage sync
+            if (e.Amount > 0f) _shake = shakeAmplitude * intensity;
         }
 
-        // External shake request (Screamer wave, explosions). Take the stronger of current/requested.
         private void OnCameraShake(CameraShake e)
         {
             float intensity = GameSettings.CameraShakeIntensity;
@@ -101,7 +93,6 @@ namespace Biofall.Gameplay
             transform.rotation = rotation;
         }
 
-        /// <summary>Offset that leans the focus from the player toward the ground point under the cursor.</summary>
         private Vector3 ComputeLookahead(Quaternion rotation)
         {
             if (_input == null || _camera == null || lookaheadAmount <= 0f)

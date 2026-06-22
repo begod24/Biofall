@@ -8,10 +8,6 @@ using Biofall.Net;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Observer: shows the "MISSION COMPLETE" panel on <see cref="MissionCompleted"/>, styled
-    /// like the Game Over / Pause panels. Offers Replay and Main Menu. Pure UI — only listens.
-    /// </summary>
     public sealed class MissionCompleteUI : MonoBehaviour
     {
         [SerializeField] private GameObject panel;
@@ -54,8 +50,6 @@ namespace Biofall.UI
             if (panel != null) panel.SetActive(true);
             UiOverlay.Active = true;
             Cursor.visible = true;
-            // Co-op: only the host can replay the shared mission (networked reload); a client without
-            // authority can't drive it, so its Replay is disabled and it leaves via Main Menu instead.
             if (replayButton != null) replayButton.interactable = !NetSession.InCoop || NetSession.IsServer;
             if (sfxSource != null && completeSfx != null)
                 sfxSource.PlayOneShot(completeSfx, completeVolume);
@@ -68,7 +62,6 @@ namespace Biofall.UI
 
             if (NetSession.InCoop)
             {
-                // Host-authoritative networked reload of the mission for the whole squad.
                 if (NetSession.IsServer && CoopSession.Instance != null) CoopSession.Instance.StartGame();
                 return;
             }

@@ -7,12 +7,6 @@ using Biofall.Core;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// In-pause Settings sub-panel. Reuses the exact same controls as the main-menu Settings
-    /// (master/music/shake sliders + resolution/display dropdowns + Apply) wired to the shared
-    /// <see cref="GameSettings"/>, so options changed mid-game persist everywhere. Self-contained:
-    /// it wires its own controls in Awake; <see cref="PauseMenu"/> only calls Open and listens for Closed.
-    /// </summary>
     public sealed class PauseSettings : MonoBehaviour
     {
         [SerializeField] private Slider masterVolumeSlider;
@@ -23,7 +17,6 @@ namespace Biofall.UI
         [SerializeField] private Button applyButton;
         [SerializeField] private Button backButton;
 
-        /// <summary>Raised when the player presses Back — PauseMenu re-shows its main panel.</summary>
         public event Action Closed;
 
         private List<Resolution> _resolutions;
@@ -57,7 +50,6 @@ namespace Biofall.UI
 
         public void Open()
         {
-            // Reflect the current saved values whenever it opens.
             if (masterVolumeSlider != null) masterVolumeSlider.SetValueWithoutNotify(GameSettings.MasterVolume);
             if (musicVolumeSlider != null) musicVolumeSlider.SetValueWithoutNotify(GameSettings.MusicVolume);
             if (shakeSlider != null) shakeSlider.SetValueWithoutNotify(GameSettings.CameraShakeIntensity);
@@ -69,8 +61,6 @@ namespace Biofall.UI
             gameObject.SetActive(false);
             Closed?.Invoke();
         }
-
-        // ---- display dropdowns (mirrors MainMenuUI so behaviour is identical) ----
 
         private void SetupDisplayDropdowns()
         {

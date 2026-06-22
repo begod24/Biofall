@@ -2,12 +2,6 @@ using UnityEngine;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Data-driven config for the Screamer variant. Extends <see cref="EnemyData"/> (HP, movement,
-    /// separation, death, loot, hit-reaction are all reused) and adds the area-of-effect scream wave:
-    /// a pooled VFX ring plus a radial damage check against the player only. Asset:
-    /// Assets/ScriptableObjects/Enemies/EN_Screamer. Set <c>attackTrigger = "Scream"</c> on the asset.
-    /// </summary>
     [CreateAssetMenu(menuName = "Biofall/Screamer Data", fileName = "EN_Screamer")]
     public sealed class ScreamerData : EnemyData
     {

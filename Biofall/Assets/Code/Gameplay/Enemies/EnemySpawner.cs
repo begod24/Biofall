@@ -5,12 +5,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Spawns zombies through <see cref="EnemyManager"/> (pooled) at points around the player that
-    /// are off-screen AND on the NavMesh AND have a valid path to the player — so the horde appears
-    /// off-screen and actually walks in (it can never spawn outside the level / behind a wall where
-    /// it would get stuck). Spawned enemies aggro immediately so they head for the player.
-    /// </summary>
     public sealed class EnemySpawner : MonoBehaviour
     {
         [SerializeField] private int count = 12;
@@ -32,8 +26,6 @@ namespace Biofall.Gameplay
         [SerializeField] private int screamerMin = 2;
         [SerializeField] private int screamerMax = 5;
 
-        // How far a chosen ring point may be snapped onto the NavMesh. Small, so points that land
-        // well outside the walls (no mesh nearby) are rejected instead of dragged in.
         private const float SnapRadius = 4f;
 
         private Camera _camera;
@@ -48,7 +40,7 @@ namespace Biofall.Gameplay
 
         private IEnumerator SpawnBatch()
         {
-            yield return null; // let PlayerRegistry / EnemyManager / NavMesh initialise
+            yield return null;
 
             _camera = Camera.main;
             _path ??= new NavMeshPath();
@@ -59,7 +51,6 @@ namespace Biofall.Gameplay
                 if (TrySpawn(null)) { if (spawnInterval > 0f) yield return wait; }
             }
 
-            // A handful of Screamers mixed into the horde.
             if (screamerPrefab != null)
             {
                 int screamers = Random.Range(screamerMin, screamerMax + 1);
@@ -68,7 +59,6 @@ namespace Biofall.Gameplay
             }
         }
 
-        /// <summary>Find a valid reachable point and spawn there. Returns false (and skips) if none found.</summary>
         private bool TrySpawn(GameObject prefab)
         {
             Vector3 center = PlayerRegistry.HasPlayer ? PlayerRegistry.Player.position : transform.position;
@@ -82,10 +72,6 @@ namespace Biofall.Gameplay
             return e != null;
         }
 
-        /// <summary>
-        /// A point on the NavMesh, around the player, that the enemy can actually path to. Prefers
-        /// off-screen; falls back to an on-screen reachable point rather than spawning off-mesh.
-        /// </summary>
         private bool TryFindSpawnPoint(Vector3 center, out Vector3 result)
         {
             bool hasFallback = false;
@@ -97,10 +83,8 @@ namespace Biofall.Gameplay
                 float radius = Random.Range(minRadius, maxRadius);
                 Vector3 ring = center + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
 
-                // Must be on the NavMesh near the chosen point...
                 if (!NavMesh.SamplePosition(ring, out NavMeshHit hit, SnapRadius, NavMesh.AllAreas))
                     continue;
-                // ...and actually able to reach the player (rejects disconnected outside-wall ground).
                 if (!NavMesh.CalculatePath(hit.position, center, NavMesh.AllAreas, _path) ||
                     _path.status != NavMeshPathStatus.PathComplete)
                     continue;

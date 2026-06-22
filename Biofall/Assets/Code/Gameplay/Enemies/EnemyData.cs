@@ -2,10 +2,6 @@ using UnityEngine;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Data-driven zombie config (ScriptableObject), mirroring <see cref="WeaponData"/>. Stats and
-    /// audio live here so balancing/variants need no code. Asset: Assets/ScriptableObjects/EN_Zombie.
-    /// </summary>
     [CreateAssetMenu(menuName = "Biofall/Enemy Data", fileName = "EN_Enemy")]
     public class EnemyData : ScriptableObject
     {
@@ -71,7 +67,5 @@ namespace Biofall.Gameplay
         public Color hitFlashColor = new Color(1f, 0.4f, 0.4f, 1f);
         public float hitFlashDuration = 0.06f;
 
-        // Drops are no longer configured per-enemy: a single LootConfig asset + LootService own all
-        // loot (keyed by this EnemyData for type-specific drops like grenades). See LootService.
     }
 }

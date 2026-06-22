@@ -2,10 +2,6 @@ using UnityEngine;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Data-driven weapon configuration (ScriptableObject). Stats and asset references live
-    /// here, not hardcoded in <see cref="Weapon"/>, so tweaking/adding weapons needs no code.
-    /// </summary>
     [CreateAssetMenu(menuName = "Biofall/Weapon Data", fileName = "WD_Weapon")]
     public sealed class WeaponData : ScriptableObject
     {

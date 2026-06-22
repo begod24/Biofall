@@ -8,12 +8,11 @@ using UnityEngine;
 
 namespace Biofall.Net
 {
-    /// <summary>A co-op host found on the local network.</summary>
     public readonly struct DiscoveredHost
     {
-        public readonly string Address;   // host LAN IP to connect to
-        public readonly ushort Port;      // game (UnityTransport) port
-        public readonly string Name;      // session/host name
+        public readonly string Address;
+        public readonly ushort Port;
+        public readonly string Name;
 
         public DiscoveredHost(string address, ushort port, string name)
         {
@@ -21,39 +20,27 @@ namespace Biofall.Net
         }
     }
 
-    /// <summary>
-    /// LAN lobby discovery over UDP broadcast (NGO has none built in). Host ADVERTISES: it binds
-    /// the discovery port and answers broadcast requests with its game port + session name. A
-    /// browsing client LISTENS: it broadcasts a request and raises <see cref="HostDiscovered"/> for
-    /// every reply (the sender's IP = the host to connect to). Sockets run on background threads;
-    /// results are marshalled to the main thread via a queue and surfaced in Update. Falls back
-    /// gracefully — if broadcast is blocked (AP isolation), the player can still Join by direct IP.
-    /// </summary>
     public sealed class LanDiscovery : MonoBehaviour
     {
         public const ushort DiscoveryPort = 47777;
-        private const uint Magic = 0x0B10FA11;   // "BIOFALL" — filters foreign packets
+        private const uint Magic = 0x0B10FA11;
         private const byte MsgRequest = 1;
         private const byte MsgResponse = 2;
 
-        /// <summary>Raised on the main thread when a host replies to a discovery request.</summary>
         public event Action<DiscoveredHost> HostDiscovered;
 
         private readonly List<DiscoveredHost> _hosts = new();
 
-        /// <summary>De-duplicated hosts found since the last <see cref="ClearHosts"/> (for the lobby browser).</summary>
         public IReadOnlyList<DiscoveredHost> Hosts => _hosts;
 
         public void ClearHosts() => _hosts.Clear();
 
-        private UdpClient _serverSocket;   // host: listens for requests, replies
-        private UdpClient _clientSocket;   // browser: sends requests, listens for replies
+        private UdpClient _serverSocket;
+        private UdpClient _clientSocket;
         private string _sessionName = "BIOFALL Squad";
         private ushort _gamePort = NetworkBootstrap.DefaultPort;
 
         private readonly ConcurrentQueue<DiscoveredHost> _found = new();
-
-        // ---- Host side ----
 
         public void StartAdvertising(string sessionName, ushort gamePort)
         {
@@ -90,14 +77,12 @@ namespace Biofall.Net
                     _serverSocket.Send(reply, reply.Length, from);
                 }
             }
-            catch { /* socket closed or bad packet — ignore */ }
+            catch {  }
             finally
             {
                 try { _serverSocket?.BeginReceive(OnServerReceive, null); } catch { }
             }
         }
-
-        // ---- Client/browser side ----
 
         public void StartListening()
         {
@@ -107,7 +92,7 @@ namespace Biofall.Net
                 _clientSocket = new UdpClient();
                 _clientSocket.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                 _clientSocket.EnableBroadcast = true;
-                _clientSocket.Client.Bind(new IPEndPoint(IPAddress.Any, 0)); // ephemeral
+                _clientSocket.Client.Bind(new IPEndPoint(IPAddress.Any, 0));
                 _clientSocket.BeginReceive(OnClientReceive, null);
             }
             catch (Exception e) { Debug.LogWarning($"[LanDiscovery] listen failed: {e.Message}"); }
@@ -119,7 +104,6 @@ namespace Biofall.Net
             _clientSocket = null;
         }
 
-        /// <summary>Broadcast a discovery request; hosts reply and fire <see cref="HostDiscovered"/>.</summary>
         public void RefreshHosts()
         {
             if (_clientSocket == null) StartListening();
@@ -166,8 +150,6 @@ namespace Biofall.Net
             StopListening();
         }
 
-        // ---- packet encoding ----
-
         private static byte[] BuildRequest()
         {
             using var ms = new System.IO.MemoryStream();
@@ -200,7 +182,7 @@ namespace Biofall.Net
             {
                 using var ms = new System.IO.MemoryStream(data);
                 using var r = new System.IO.BinaryReader(ms);
-                r.ReadUInt32(); r.ReadByte();            // magic + type
+                r.ReadUInt32(); r.ReadByte();
                 gamePort = r.ReadUInt16();
                 ushort len = r.ReadUInt16();
                 name = Encoding.UTF8.GetString(r.ReadBytes(len));

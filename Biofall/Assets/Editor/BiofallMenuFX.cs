@@ -9,11 +9,6 @@ using Biofall.UI;
 
 namespace Biofall.EditorTools
 {
-    /// <summary>
-    /// One-shot wiring for the main-menu FX: pulsing title glow + full-screen CRT overlay.
-    /// Opens MainMenu additively (so it never disturbs whatever scene is currently open),
-    /// wires everything, saves and closes. Run via Tools/Biofall/Setup Menu FX.
-    /// </summary>
     public static class BiofallMenuFX
     {
         const string ScenePath  = "Assets/Scenes/MainMenu.unity";
@@ -51,7 +46,7 @@ namespace Biofall.EditorTools
                 if (title != null)
                 {
                     if (title.GetComponent<TitleGlowPulse>() == null) title.AddComponent<TitleGlowPulse>();
-                    var shadow = title.GetComponent<Shadow>();   // legacy UGUI Outline/Shadow — inert on TMP
+                    var shadow = title.GetComponent<Shadow>();
                     if (shadow != null) Object.DestroyImmediate(shadow);
                 }
 
@@ -67,8 +62,8 @@ namespace Biofall.EditorTools
                     var ri = go.GetComponent<RawImage>();
                     ri.material = mat;
                     ri.color = Color.white;
-                    ri.raycastTarget = false;           // never block menu buttons
-                    go.transform.SetAsLastSibling();    // draw on top of everything
+                    ri.raycastTarget = false;
+                    go.transform.SetAsLastSibling();
                 }
 
                 EditorSceneManager.MarkSceneDirty(scene);

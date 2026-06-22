@@ -4,12 +4,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// In-game music driver: picks a random track from the playlist, fades it in, plays it to the end,
-    /// fades out, then waits a random silent gap (<see cref="minGap"/>..<see cref="maxGap"/>) before
-    /// picking another. Pure random — the same track may repeat. Kept quiet via <see cref="targetVolume"/>.
-    /// Mirrors the menu's MenuMusic but with a playlist instead of a single looping clip.
-    /// </summary>
     [RequireComponent(typeof(AudioSource))]
     public sealed class GameMusic : MonoBehaviour
     {
@@ -22,7 +16,7 @@ namespace Biofall.Gameplay
         [SerializeField] private float minGap = 15f;
         [SerializeField] private float maxGap = 20f;
 
-        private float _fade01;   // current fade fraction (0..1); final volume = _fade01 * targetVolume * MusicVolume
+        private float _fade01;
 
         private void Awake()
         {

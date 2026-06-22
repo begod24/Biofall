@@ -4,11 +4,6 @@ using Biofall.Gameplay;
 
 namespace Biofall.UI
 {
-    /// <summary>
-    /// Minimal HUD label that shows the current sandbox wave ("WAVE N"). Subscribes to
-    /// <see cref="WaveSpawner.WaveStarted"/>; harmless in scenes without a WaveSpawner (shows 1).
-    /// Uses legacy UI Text to match the rest of the HUD.
-    /// </summary>
     public sealed class WaveHud : MonoBehaviour
     {
         [SerializeField] private TMP_Text label;

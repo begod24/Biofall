@@ -3,11 +3,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Short-lived muzzle flash (Object Pooling): a light burst plus a glowing core that
-    /// fade over a few frames, then the flash returns ITSELF to the pool — so firing never
-    /// allocates. Spawn it at the weapon's Muzzle each shot via <see cref="PoolService"/>.
-    /// </summary>
     [DisallowMultipleComponent]
     public sealed class MuzzleFlash : MonoBehaviour, IPoolable
     {
@@ -34,7 +29,6 @@ namespace Biofall.Gameplay
         {
             _timer = duration;
 
-            // Random roll + slight scale variance so repeated shots don't look identical.
             transform.Rotate(Vector3.forward, Random.Range(0f, 360f), Space.Self);
             float s = coreScale * Random.Range(0.85f, 1.15f);
 
@@ -56,7 +50,7 @@ namespace Biofall.Gameplay
             if (_timer <= 0f) return;
 
             _timer -= Time.deltaTime;
-            float t = Mathf.Clamp01(_timer / duration); // 1 -> 0
+            float t = Mathf.Clamp01(_timer / duration);
 
             if (flashLight != null) flashLight.intensity = lightIntensity * t;
             if (core != null) core.localScale = Vector3.one * (coreScale * t);

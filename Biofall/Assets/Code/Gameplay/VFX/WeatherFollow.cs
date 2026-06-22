@@ -3,10 +3,6 @@ using Biofall.Core;
 
 namespace Biofall.Gameplay
 {
-    /// <summary>
-    /// Keeps a weather emitter (rain) centred above the player on XZ, at a fixed height, without
-    /// inheriting the player's rotation — so the rain always falls straight down around the player.
-    /// </summary>
     public sealed class WeatherFollow : MonoBehaviour
     {
         [SerializeField] private float height = 16f;
