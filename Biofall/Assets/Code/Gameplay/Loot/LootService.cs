@@ -11,6 +11,9 @@ namespace Biofall.Gameplay
         [SerializeField] private float dropHeight = 0.3f;
         [Tooltip("Random horizontal scatter so multiple drops don't stack on one point.")]
         [SerializeField] private float scatter = 0.5f;
+        [Tooltip("Turn OFF in WaveMode: enemies won't drop Bio Samples (entries marked 'isBioSample'). " +
+                 "WaveMode is pure arcade — no currency farming, nothing is banked toward upgrades.")]
+        [SerializeField] private bool dropBioSamples = true;
 
         private void OnEnable() => EventBus.Subscribe<TargetDied>(OnTargetDied);
         private void OnDisable() => EventBus.Unsubscribe<TargetDied>(OnTargetDied);
@@ -29,6 +32,7 @@ namespace Biofall.Gameplay
             foreach (var entry in config.entries)
             {
                 if (entry == null || entry.prefab == null) continue;
+                if (!dropBioSamples && entry.isBioSample) continue;
                 if (entry.onlyFor != null && entry.onlyFor != data) continue;
                 if (Random.value >= entry.chance) continue;
 

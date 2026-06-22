@@ -20,6 +20,7 @@ MonoBehaviour:
     minCount: 1
     maxCount: 1
     onlyFor: {fileID: 0}
+    isBioSample: 1
   - label: grenade_runner
     prefab: {fileID: 3944709900554643931, guid: dd1368c37d9004c678d845fb2cdf89db, type: 3}
     coopPrefab: {fileID: 1627380477694323017, guid: 3ab9b13f48de54354acc7feea6c96bc9, type: 3}

@@ -16,6 +16,9 @@ namespace Biofall.Gameplay
         public int maxCount = 1;
         [Tooltip("Leave empty = drops from every enemy. Set = only this enemy type rolls this entry.")]
         public EnemyData onlyFor;
+        [Tooltip("Mark Bio Sample drops. A LootService with 'Drop Bio Samples' off skips these " +
+                 "(used in WaveMode — pure arcade, no currency farming).")]
+        public bool isBioSample;
     }
 
     [CreateAssetMenu(menuName = "Biofall/Loot Config", fileName = "LT_Campaign")]
