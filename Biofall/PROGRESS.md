@@ -1,42 +1,58 @@
 # BIOFALL — что сделано
 
-Top-down зомби-шутер. Unity 6 (URP), без asmdef, namespaces `Biofall.Core / Gameplay / UI`.
+Top-down зомби-шутер. Unity 6 (URP), namespaces `Biofall.Core / Gameplay / Net / UI`, код в `Assets/Code/`.
 Архитектура: EventBus (события), PoolService (пулинг), PlayerRegistry, ScriptableObject-данные, SOLID.
+Режимы: **SOLO** (миссия + волновой), **CO-OP** (Netcode for GameObjects, LAN).
 
 ## Сцены и поток
-- **Boot → MainMenu → Test** (геймплей). Есть копия `Blockout` с greybox-уровнем (платформы/рампы/стены) и ~75 зомби.
-- Главное меню (Play / Credits «Bekbolat Aldiyarov» / Exit), стиль Alien Shooter (тёмный фон + циановые рамки).
-- Пауза по Escape (Resume / Restart / Main Menu), экран Game Over (Restart / Main Menu).
+- **Boot → MainMenu → геймплей.** Геймплейные сцены: `Mission_1`, `Mission_1_Coop`, `CoopArena`, `CoopTest`, `SOLO/Mission_1 SOLO`, `SOLO/WaveMode`.
+- Главное меню (Play / Credits «Bekbolat Aldiyarov» / Exit), стиль Alien Shooter (тёмный фон + циановые рамки), пульсация заголовка, музыка меню.
+- Пауза по Escape (Resume / Restart / Settings / Main Menu), настройки, экран Game Over, экран завершения миссии.
 
 ## Игрок
-- Движение WASD, прицел мышью, top-down камера (наклон 60°, follow + lookahead, тряска при уроне).
-- HUD: HP, патроны, FPS, Bio Samples («BIO N»), бордовая виньетка урона/низкого HP.
-- Смерть игрока: анимация + блок управления + Game Over.
+- Движение WASD, прицел мышью, top-down камера (наклон, follow + lookahead, тряска при уроне).
+- HUD: HP, патроны, гранаты, FPS, Bio Samples, цели миссии, прогресс-бар, прицел, бордовая виньетка урона/низкого HP.
+- Фонарик (конус по направлению прицела). Смерть: анимация + блок управления + Game Over.
 
-## Оружие (арсенал)
-- Переключение **1 = пистолет, 2 = M4**, у каждого свои патроны (12/48 и 30/120), HUD показывает активное.
-- Пистолет — одиночный; **M4 — клик одиночный, зажатие очереди по 3**, урон 12/пуля.
-- Хитскан по прицелу, трейсер-пуля и **muzzle flash** из пула, звуки выстрела/перезарядки.
-- Rifle-анимации игрока (idle/run/back/reload/fire) на базовом слое по параметру `Weapon`.
+## Оружие и бой
+- Переключение **1 = пистолет, 2 = M4**, раздельные патроны, HUD показывает активное.
+- Пистолет — одиночный; **M4 — клик одиночный, зажатие очереди**. Хитскан по прицелу, трейсер-пуля, muzzle flash из пула, звуки выстрела/перезарядки.
+- **Гранаты**: бросок по прицелу, инвентарь с ёмкостью, взрыв (AoE-урон + VFX), подбор гранат с дропа.
+- Стратегии огня вынесены в `IFireStrategy` (SingleFire и т.д.).
 
-## Зомби
-- 50 HP, погоня (гибрид: стиринг + NavMesh при препятствии), атака по событию анимации, смерть (анимация + звук).
-- Пул, спавн **вне обзора** камеры, boids-расталкивание (не слипаются), случайные тихие гроулы.
-- Реакция на попадание: **кровь-брызги** (партиклы), вспышка материала, отброс. Дроп: патроны (шанс) + Bio Samples.
-- Архитектура готова к 100–150 (один общий Update-цикл в `EnemyManager`).
+## Враги (4 типа)
+- **Zombie** (база, 50 HP), **Runner** (быстрый), **Tank** (толстый), **Screamer** (крик — AoE-волна `ScreamWaveAttack`/`ScreamWaveVFX`). Данные в `EN_*` ScriptableObjects.
+- Погоня (гибрид: стиринг + NavMesh при препятствии), атака по событию анимации, смерть (анимация + звук).
+- Пул, спавн вне обзора камеры, boids-расталкивание, health-bar над врагом.
+- Реакция на попадание: кровь-брызги (партиклы), вспышка материала, отброс, **лужи крови-декали** (`BloodPool`). Дроп: патроны/аптечки/гранаты (шанс) + Bio Samples через `LootService` + `LootConfig`.
+- Общий Update-цикл в `EnemyManager`. Спавнеры: `EnemySpawner`, `WaveSpawner` (волны), `CoopEnemySpawner` (сетевой).
 
-## Экономика
-- Bio Samples: дроп с зомби → подбор → счётчик на HUD. (Пока без траты — следующий шаг: апгрейды.)
+## Миссия (Mission_1)
+- Фазы (`MissionDirector` + EventBus): **Найти генератор → активировать маяк → оборона маяка (волны) → эвакуация**.
+- Интерактивные объекты (`IInteractable`): `GeneratorStation`, `BeaconStation`, `ExtractionPoint`; подсказка взаимодействия в HUD.
+- Работает в SOLO и CO-OP (на сервере волны гонит `CoopEnemySpawner`).
+
+## Волновой режим (WaveMode)
+- Отдельная сцена `SOLO/WaveMode` + `WaveSpawner` + `WaveHud` + `HUD_WaveMode.prefab`. Эндлесс-волны.
+
+## Экономика и мета-прогрессия
+- Bio Samples: дроп с врагов → подбор → `CurrencyWallet` (HUD-счётчик) → при завершении миссии `RunSampleBanker` кладёт всё в банк.
+- **Магазин апгрейдов** (`UpgradeShopUI`/`UpgradeRowUI`): тратим банк на 6 статов — `MaxHealth, MoveSpeed, HealthRegen, ReviveSpeed, GrenadeCapacity, PickupRadius`. Тиры со стоимостью в `UpgradeData`, каталог в `Resources/UpgradeCatalog`.
+- Сохранение через **PlayerPrefs** (`PlayerProgression`): банк + уровни апгрейдов персистятся между запусками. Есть сброс прогресса.
+
+## Co-op (Netcode for GameObjects)
+- Стек: `com.unity.netcode.gameobjects` 2.12 + Multiplayer Center. Хостинг + **LAN-дискавери** (`LanDiscovery`).
+- `NetworkBootstrap`, `CoopSession`, `NetSession` (InCoop/IsServer), сетевые `CoopPlayer`, `CoopEnemy`, `CoopPickup`, `CoopLootService`, `CoopMission`.
+- Синхронизация: `ClientNetworkTransform`, `OwnerNetworkAnimator`. **Механика downed/revive**: `CoopPlayerLife`, `CoopReviveInteractor`, UI `CoopDownedUI`/`CoopDownedMarker`, `CoopSquadHUD` (статус сквада). Dev-HUD: `CoopDevHud`.
+- Co-op префабы-варианты всех врагов и пикапов в `Assets/Prefabs/Net/`.
 
 ## Атмосфера
-- Мрачный URP post-process (vignette, color grading, bloom), туман, тёмный скайбокс — «мрачно, но видно».
-- **Фонарик** игрока: конус светит туда, куда целишься.
-- **Дождь** в Test (партиклы над игроком, симуляция в world).
+- Мрачный URP post-process (vignette, color grading, bloom), туман, тёмный скайбокс. Дождь (партиклы, `WeatherFollow`). Игровая/меню музыка.
 
 ## Ключевые ассеты
-- Данные: `WD_Pistol`, `WD_M4`, `EN_Zombie` (ScriptableObjects).
-- VFX-префабы (в `Assets/Prefabs/`): `VFX_MuzzleFlash`, `VFX_BulletTracer`, `VFX_BloodSplatter`, `Pickup_Ammo`, `Pickup_BioSample`.
-- Аниматоры: `CharacterController` (игрок, +rifle), `EnemyController` (зомби).
+- Оружие: `WD_Pistol`, `WD_M4`. Враги: `EN_Zombie`, `EN_Runner`, `EN_Tank`, `EN_Screamer`. Апгрейды: `UPG_*` (6 шт).
+- Префабы: `Assets/Prefabs/{Weapon,Enemies,GameProps,Player,Net}/`. VFX: muzzle flash, tracer, blood splatter, blood pool decal, explosion, scream wave.
+- Аниматоры игрока (+rifle) и зомби.
 
 ## Дальше (идеи)
-Волны + счёт, трата Bio Samples на апгрейды, ещё оружие (Shotgun/AR), реальный уровень.
+Счёт/рекорды в WaveMode, больше оружия (Shotgun/AR), больше миссий, баланс волн, полировка co-op (squad HUD, сетевой лаг), реальный арт-уровень вместо greybox.
