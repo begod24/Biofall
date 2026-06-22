@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32edefc4fb5f94659b95ff9ee55fafac, type: 3}
+  m_Name: LT_Campaign
+  m_EditorClassIdentifier: Assembly-CSharp::Biofall.Gameplay.LootConfig
+  entries:
+  - label: biosample
+    prefab: {fileID: 4792802181413793670, guid: ddce70104558149818f44d20e57a57e5, type: 3}
+    coopPrefab: {fileID: 427211808454123496, guid: 6ac91e1b9a3a3455fb4626b05d3ac20f, type: 3}
+    chance: 0.6
+    minCount: 1
+    maxCount: 1
+    onlyFor: {fileID: 0}
+  - label: grenade_runner
+    prefab: {fileID: 3944709900554643931, guid: dd1368c37d9004c678d845fb2cdf89db, type: 3}
+    coopPrefab: {fileID: 1627380477694323017, guid: 3ab9b13f48de54354acc7feea6c96bc9, type: 3}
+    chance: 0.2
+    minCount: 1
+    maxCount: 1
+    onlyFor: {fileID: 11400000, guid: e5010acf8522944bfb1aa9f459e7e62b, type: 2}
+  - label: grenade_screamer
+    prefab: {fileID: 3944709900554643931, guid: dd1368c37d9004c678d845fb2cdf89db, type: 3}
+    coopPrefab: {fileID: 1627380477694323017, guid: 3ab9b13f48de54354acc7feea6c96bc9, type: 3}
+    chance: 0.4
+    minCount: 1
+    maxCount: 1
+    onlyFor: {fileID: 11400000, guid: e9ebd1ba142ee468793d739ebfa69686, type: 2}
+  - label: grenade_tank
+    prefab: {fileID: 3944709900554643931, guid: dd1368c37d9004c678d845fb2cdf89db, type: 3}
+    coopPrefab: {fileID: 1627380477694323017, guid: 3ab9b13f48de54354acc7feea6c96bc9, type: 3}
+    chance: 0.5
+    minCount: 1
+    maxCount: 1
+    onlyFor: {fileID: 11400000, guid: 0d13d5c8a1b014d1ba58ef362ee02447, type: 2}

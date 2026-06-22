@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afba68d6664de4bf9be6f8d8a0247514, type: 3}
+  m_Name: UPG_grenade_capacity
+  m_EditorClassIdentifier: Assembly-CSharp::Biofall.Core.UpgradeData
+  id: grenade_capacity
+  displayName: Bandolier
+  description: Carry more grenades.
+  icon: {fileID: 0}
+  stat: 4
+  apply: 0
+  tiers:
+  - cost: 60
+    value: 1
+  - cost: 140
+    value: 2

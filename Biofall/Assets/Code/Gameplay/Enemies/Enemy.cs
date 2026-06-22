@@ -1,0 +1,471 @@
+using System.Collections;
+using UnityEngine;
+using Biofall.Core;
+using Biofall.Net;
+
+namespace Biofall.Gameplay
+{
+    /// <summary>
+    /// Zombie brain (Object Pooling + Observer). Reuses the generic <see cref="Health"/> for HP and
+    /// IDamageable, drives the Animator (Speed / Attack / Die), chases via <see cref="EnemyMovement"/>,
+    /// and damages the player at the Enemy_Attack hit frame (animation event -> <see cref="OnAttackHit"/>).
+    /// Publishes <see cref="TargetDamaged"/>/<see cref="TargetDied"/>. Ticked centrally by
+    /// <see cref="EnemyManager"/> (no per-enemy Update) so it scales to many zombies.
+    /// </summary>
+    [RequireComponent(typeof(Health))]
+    [RequireComponent(typeof(Animator))]
+    [RequireComponent(typeof(AudioSource))]
+    [RequireComponent(typeof(EnemyMovement))]
+    public sealed class Enemy : MonoBehaviour, IPoolable
+    {
+        [SerializeField] private EnemyData data;
+        [SerializeField] private Animator animator;
+        [SerializeField] private EnemyMovement movement;
+        [SerializeField] private Collider bodyCollider;
+        [SerializeField] private AudioSource audioSource;
+        [Tooltip("Floating world-space HP bar (auto-found in children if left empty). Optional.")]
+        [SerializeField] private EnemyHealthBar healthBar;
+
+        [Header("Death dissolve")]
+        [Tooltip("Delay after death before the corpse starts burning away (lets the death anim play).")]
+        [SerializeField] private float dissolveDelay = 0.55f;
+        [SerializeField] private float dissolveDuration = 1.1f;
+        [SerializeField] private float dissolveNoiseScale = 9f;
+        [SerializeField] private float dissolveEdgeWidth = 0.08f;
+        [ColorUsage(true, true)]
+        [SerializeField] private Color dissolveEdgeColor = new Color(4f, 1.2f, 0.25f, 1f);
+
+        private Health _health;
+        private Transform _tf;
+        private Transform _playerTf;
+        private IDamageable _playerDamageable;
+
+        private bool _dead;
+        private bool _inRange;
+        private bool _aggroed;
+        private float _attackTimer;
+        private float _flashTimer;
+        private int _attackId;
+
+        private Renderer[] _renderers;
+        private MaterialPropertyBlock _mpb;
+
+        private Material[][] _originalMats;   // sharedMaterials per renderer, cached for pooling restore
+        private Material[][] _dissolveMats;   // per-submaterial dissolve instances (built lazily, reused across lives)
+        private bool _dissolveSupported = true;
+
+        /// <summary>
+        /// CO-OP only: raised when the corpse is ready to be removed. The server's
+        /// <see cref="CoopEnemy"/> subscribes and NGO-despawns instead of pooling. When there is a
+        /// subscriber, <see cref="Despawn"/> defers to it (solo leaves this null → pools as before).
+        /// </summary>
+        public event System.Action DespawnRequested;
+
+        /// <summary>
+        /// Fires (server/solo) the moment an attack swing is triggered, so <see cref="Net.CoopEnemy"/>
+        /// can replicate the Attack animation to the puppets on remote clients.
+        /// </summary>
+        public event System.Action AttackTriggered;
+
+        /// <summary>CO-OP clients set this so the puppet never despawns itself — the server owns removal.</summary>
+        public bool SuppressDespawn { get; set; }
+
+        private static readonly int SpeedId = Animator.StringToHash("Speed");
+        private static readonly int DieId = Animator.StringToHash("Die");
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+        private static readonly int DissolveAmountId = Shader.PropertyToID("_DissolveAmount");
+        private static readonly int EdgeColorId = Shader.PropertyToID("_EdgeColor");
+        private static readonly int EdgeWidthId = Shader.PropertyToID("_EdgeWidth");
+        private static readonly int NoiseScaleId = Shader.PropertyToID("_NoiseScale");
+
+        // Global groan throttle so 100+ zombies don't all groan at once (cheap, no per-voice tracking).
+        private static float s_nextGroanAllowed;
+
+        private void Awake()
+        {
+            _tf = transform;
+            _health = GetComponent<Health>();
+            if (animator == null) animator = GetComponent<Animator>();
+            if (audioSource == null) audioSource = GetComponent<AudioSource>();
+            if (movement == null) movement = GetComponent<EnemyMovement>();
+            if (bodyCollider == null) bodyCollider = GetComponent<Collider>();
+            if (healthBar == null) healthBar = GetComponentInChildren<EnemyHealthBar>(true);
+            _renderers = GetComponentsInChildren<Renderer>(true);
+            _mpb = new MaterialPropertyBlock();
+            CacheOriginalMaterials();
+        }
+
+        private void OnEnable()
+        {
+            _health.Damaged += OnDamaged;
+            _health.Died += OnDied;
+        }
+
+        private void OnDisable()
+        {
+            _health.Damaged -= OnDamaged;
+            _health.Died -= OnDied;
+        }
+
+        // ---- Pooling lifecycle ----
+        public void OnSpawned()
+        {
+            StopAllCoroutines();
+            RestoreMaterials();   // undo any leftover dissolve from the previous life
+
+            _dead = false;
+            _inRange = false;
+            _aggroed = false;
+            _attackTimer = 0f;
+            _attackId = Animator.StringToHash(string.IsNullOrEmpty(data.attackTrigger) ? "Attack" : data.attackTrigger);
+
+            _health.SetMax(data.maxHealth, true);
+            if (bodyCollider != null) bodyCollider.enabled = true;
+
+            if (animator != null)
+            {
+                animator.Rebind();      // reset to Locomotion (clears any leftover death pose on reuse)
+                animator.Update(0f);
+            }
+
+            movement.Init(data);
+            CacheTarget();
+            if (healthBar != null) healthBar.ResetBar();
+            EnemyManager.Instance?.Register(this);
+        }
+
+        public void OnDespawned()
+        {
+            EnemyManager.Instance?.Unregister(this);
+        }
+
+        /// <summary>This enemy's archetype config — used as the key for type-specific loot drops.</summary>
+        public EnemyData Data => data;
+
+        /// <summary>World position (cached transform) — used by the manager for boids separation.</summary>
+        public Vector3 Position => _tf.position;
+
+        /// <summary>True once dead (corpse) — excluded from separation and ticking logic.</summary>
+        public bool Dead => _dead;
+
+        /// <summary>Boids separation radius (from data) — read by the manager.</summary>
+        public float SeparationRadius => data != null ? data.separationRadius : 1f;
+
+        /// <summary>True once this enemy has locked onto the player (permanent until death).</summary>
+        public bool Aggroed => _aggroed;
+
+        /// <summary>Aggro/horde-spread radius (from data) — read by the manager.</summary>
+        public float AggroRadius => data != null ? data.aggroRadius : 10f;
+
+        /// <summary>Force this enemy into the chase (used by the manager to spread aggro to neighbours).</summary>
+        public void Aggro() { if (!_dead) _aggroed = true; }
+
+        // ---- Central tick (called by EnemyManager) ----
+        public void Tick(float dt, Vector3 separation)
+        {
+            if (_dead) return;
+
+            // Re-evaluate the nearest player every tick (cheap for a few players; in solo it's the
+            // only player, so behaviour is identical). Lets the horde split between co-op teammates.
+            CacheTarget();
+            if (_playerTf == null) return;
+
+            // Aggro by pure distance; once locked on, chase permanently.
+            if (!_aggroed)
+            {
+                Vector3 toPlayer = _playerTf.position - _tf.position;
+                toPlayer.y = 0f;
+                if (toPlayer.sqrMagnitude <= data.aggroRadius * data.aggroRadius) _aggroed = true;
+            }
+
+            _inRange = movement.Tick(_aggroed, _playerTf.position, separation, dt, out bool moving);
+            if (animator != null) animator.SetFloat(SpeedId, moving ? 1f : 0f);
+
+            _attackTimer -= dt;
+            if (_inRange && _attackTimer <= 0f)
+            {
+                _attackTimer = data.attackCooldown;
+                if (animator != null) animator.SetTrigger(_attackId);
+                AttackTriggered?.Invoke(); // co-op: mirror the swing to remote puppets
+            }
+
+            TickFlash(dt);
+
+            MaybeGroan(dt);
+        }
+
+        private void TickFlash(float dt)
+        {
+            if (_flashTimer > 0f)
+            {
+                _flashTimer -= dt;
+                if (_flashTimer <= 0f) SetFlash(false);
+            }
+        }
+
+        /// <summary>CO-OP clients are NOT ticked by the manager — they call this to age the hit flash.</summary>
+        public void ClientFxTick(float dt)
+        {
+            TickFlash(dt);
+            MaybeGroan(dt); // co-op clients aren't manager-ticked → groan locally so the horde isn't silent
+        }
+
+        /// <summary>
+        /// CO-OP puppets (remote clients) replay the attack swing when the server reports one. Clients
+        /// never run <see cref="OnSpawned"/>, so resolve the trigger hash lazily from the prefab data.
+        /// </summary>
+        public void PlayAttackFx()
+        {
+            if (animator == null) return;
+            if (_attackId == 0)
+                _attackId = Animator.StringToHash(data != null && !string.IsNullOrEmpty(data.attackTrigger) ? data.attackTrigger : "Attack");
+            animator.SetTrigger(_attackId);
+        }
+
+        /// <summary>Animation event fired on the Enemy_Attack hit frame.</summary>
+        public void OnAttackHit()
+        {
+            if (_dead || _playerDamageable == null || _playerTf == null) return;
+
+            // Re-check distance so a hit doesn't land if the player already escaped.
+            Vector3 d = _playerTf.position - _tf.position;
+            d.y = 0f;
+            float reach = data.attackRange * 1.15f;
+            if (d.sqrMagnitude > reach * reach) return;
+
+            // CO-OP: this attack runs on the SERVER only (clients don't trigger the Attack state).
+            // The target player's HP is owner-authoritative, so ask its owner to apply the damage
+            // instead of writing the server's copy of a remote player's Health.
+            if (NetSession.InCoop)
+            {
+                var coopPlayer = _playerTf.GetComponentInParent<CoopPlayer>();
+                if (coopPlayer != null) coopPlayer.TakeDamageRpc(data.attackDamage, _tf.position);
+                return;
+            }
+
+            _playerDamageable.TakeDamage(new DamageInfo(data.attackDamage, _tf.position, _tf.forward, gameObject));
+        }
+
+        // ---- Health reactions ----
+        private void OnDamaged(DamageInfo info, float current)
+        {
+            EventBus.Publish(new TargetDamaged(gameObject, current, info.Amount));
+            PlayHitFx(info);
+            if (healthBar != null && _health.Max > 0f) healthBar.Set(current / _health.Max); // server/solo
+            movement.AddKnockback(info.HitDirection.normalized * data.knockbackForce); // server/solo only
+        }
+
+        /// <summary>CO-OP clients drive the puppet's HP bar from a server-replicated fraction.</summary>
+        public void SetHealthBar(float fraction)
+        {
+            if (healthBar != null) healthBar.Set(fraction);
+        }
+
+        /// <summary>Cosmetic-only hit reaction (blood splatter + flash). Shared by the server's local
+        /// reaction and CO-OP clients, which replay it from a server RPC. No HP / knockback here.</summary>
+        public void PlayHitFx(in DamageInfo info)
+        {
+            if (data.bloodPrefab != null && PoolService.Instance != null)
+            {
+                Vector3 dir = info.HitDirection.sqrMagnitude > 0.0001f ? info.HitDirection.normalized : Vector3.up;
+                PoolService.Instance.Spawn(data.bloodPrefab, info.HitPoint, Quaternion.LookRotation(dir));
+            }
+            SetFlash(true);
+            _flashTimer = data.hitFlashDuration;
+        }
+
+        private void OnDied()
+        {
+            if (_dead) return;
+            // Drops handled centrally by LootService (listens to TargetDied). Authority-side only
+            // (server/solo); CO-OP clients replay the visuals via PlayDeathFx without re-dropping loot.
+            EventBus.Publish(new TargetDied(gameObject));
+            PlayDeathFx();
+        }
+
+        /// <summary>Death visuals + despawn (Die anim, blood gush, dissolve, then return). Server/solo
+        /// reach it through <see cref="OnDied"/>; CO-OP clients call it directly from a server RPC.</summary>
+        public void PlayDeathFx()
+        {
+            if (_dead) return;
+            _dead = true;
+
+            SetFlash(false);
+            if (healthBar != null) healthBar.Hide();
+            if (bodyCollider != null) bodyCollider.enabled = false; // corpse stops blocking shots
+            if (animator != null) animator.SetTrigger(DieId);
+            if (audioSource != null && data.deathSfx != null) audioSource.PlayOneShot(data.deathSfx, data.deathVolume);
+
+            // Big blood gush on death — several splatters around the chest for a gory pop.
+            if (data.bloodPrefab != null && PoolService.Instance != null)
+            {
+                Vector3 chest = _tf.position + Vector3.up * 1f;
+                for (int i = 0; i < 3; i++)
+                {
+                    Vector3 dir = (Vector3.up * 2.2f + Random.insideUnitSphere).normalized;
+                    PoolService.Instance.Spawn(data.bloodPrefab, chest, Quaternion.LookRotation(dir));
+                }
+            }
+
+            CancelInvoke();
+            if (_dissolveSupported && BuildDissolveMaterials())
+                StartCoroutine(DissolveAndDespawn());
+            else
+                Invoke(nameof(Despawn), data.despawnDelay);
+        }
+
+        private void SetFlash(bool on)
+        {
+            if (_renderers == null) return;
+            foreach (var r in _renderers)
+            {
+                if (r == null) continue;
+                if (on)
+                {
+                    r.GetPropertyBlock(_mpb);
+                    _mpb.SetColor(BaseColorId, data.hitFlashColor);
+                    r.SetPropertyBlock(_mpb);
+                }
+                else
+                {
+                    r.SetPropertyBlock(null); // clear override → back to material default
+                }
+            }
+        }
+
+        // ---- Death dissolve ----
+        private void CacheOriginalMaterials()
+        {
+            if (_renderers == null) return;
+            _originalMats = new Material[_renderers.Length][];
+            for (int i = 0; i < _renderers.Length; i++)
+                _originalMats[i] = _renderers[i] != null ? _renderers[i].sharedMaterials : null;
+        }
+
+        /// <summary>
+        /// Lazily builds one dissolve material per sub-material (copying base map + tint) and keeps
+        /// them for reuse across lives. Returns false if the shader is missing (caller falls back to
+        /// a plain timed despawn so death still works without the effect).
+        /// </summary>
+        private bool BuildDissolveMaterials()
+        {
+            if (_dissolveMats != null) return true;
+            Shader sh = Shader.Find("Biofall/Dissolve");
+            if (sh == null) { _dissolveSupported = false; return false; }
+
+            _dissolveMats = new Material[_renderers.Length][];
+            for (int i = 0; i < _renderers.Length; i++)
+            {
+                var r = _renderers[i];
+                var src = _originalMats != null ? _originalMats[i] : null;
+                if (r == null || src == null) { _dissolveMats[i] = null; continue; }
+
+                var dst = new Material[src.Length];
+                for (int m = 0; m < src.Length; m++)
+                {
+                    var dm = new Material(sh) { hideFlags = HideFlags.HideAndDontSave };
+                    var s = src[m];
+                    if (s != null)
+                    {
+                        if (s.HasProperty(BaseMapId)) dm.SetTexture(BaseMapId, s.GetTexture(BaseMapId));
+                        if (s.HasProperty(BaseColorId)) dm.SetColor(BaseColorId, s.GetColor(BaseColorId));
+                    }
+                    dm.SetColor(EdgeColorId, dissolveEdgeColor);
+                    dm.SetFloat(EdgeWidthId, dissolveEdgeWidth);
+                    dm.SetFloat(NoiseScaleId, dissolveNoiseScale);
+                    dm.SetFloat(DissolveAmountId, 0f);
+                    dst[m] = dm;
+                }
+                _dissolveMats[i] = dst;
+            }
+            return true;
+        }
+
+        private void ApplyDissolveMaterials()
+        {
+            if (_dissolveMats == null) return;
+            for (int i = 0; i < _renderers.Length; i++)
+                if (_renderers[i] != null && _dissolveMats[i] != null)
+                    _renderers[i].sharedMaterials = _dissolveMats[i];
+        }
+
+        private void RestoreMaterials()
+        {
+            if (_originalMats == null || _renderers == null) return;
+            for (int i = 0; i < _renderers.Length; i++)
+                if (_renderers[i] != null && _originalMats[i] != null)
+                    _renderers[i].sharedMaterials = _originalMats[i];
+            SetDissolveAmount(0f);
+        }
+
+        private void SetDissolveAmount(float a)
+        {
+            if (_dissolveMats == null) return;
+            for (int i = 0; i < _dissolveMats.Length; i++)
+            {
+                var arr = _dissolveMats[i];
+                if (arr == null) continue;
+                for (int m = 0; m < arr.Length; m++)
+                    if (arr[m] != null) arr[m].SetFloat(DissolveAmountId, a);
+            }
+        }
+
+        private IEnumerator DissolveAndDespawn()
+        {
+            // Let the death animation play / corpse settle, then burn it away.
+            yield return new WaitForSeconds(dissolveDelay);
+            SetDissolveAmount(0f);
+            ApplyDissolveMaterials();
+
+            float t = 0f;
+            float dur = Mathf.Max(0.05f, dissolveDuration);
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                SetDissolveAmount(Mathf.Clamp01(t / dur));
+                yield return null;
+            }
+            SetDissolveAmount(1f);
+            Despawn();
+        }
+
+        private void OnDestroy()
+        {
+            if (_dissolveMats == null) return;
+            foreach (var arr in _dissolveMats)
+            {
+                if (arr == null) continue;
+                foreach (var m in arr) if (m != null) Destroy(m);
+            }
+        }
+
+        private void Despawn()
+        {
+            if (SuppressDespawn) return;                                   // CO-OP client puppet — server removes it
+            if (DespawnRequested != null) { DespawnRequested(); return; }  // CO-OP server → NGO despawn
+            if (PoolService.Instance != null) PoolService.Instance.Despawn(gameObject);
+            else gameObject.SetActive(false);
+        }
+
+        // ---- Helpers ----
+        private void CacheTarget()
+        {
+            _playerTf = PlayerRegistry.Nearest(_tf.position);
+            if (_playerTf == null) _playerTf = PlayerRegistry.Player;
+            _playerDamageable = _playerTf != null ? _playerTf.GetComponentInParent<IDamageable>() : null;
+        }
+
+        private void MaybeGroan(float dt)
+        {
+            if (audioSource == null || data.groanSfx == null || data.groanSfx.Length == 0) return;
+            if (Time.time < s_nextGroanAllowed) return;
+            if (Random.value < data.groanChancePerSecond * dt)
+            {
+                s_nextGroanAllowed = Time.time + data.globalGroanInterval;
+                AudioClip clip = data.groanSfx[Random.Range(0, data.groanSfx.Length)];
+                if (clip != null) audioSource.PlayOneShot(clip, data.groanVolume);
+            }
+        }
+    }
+}
