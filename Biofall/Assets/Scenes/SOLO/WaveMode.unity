@@ -16339,8 +16339,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Biofall.Gameplay.GameMusic
   source: {fileID: 1968577633}
   tracks:
-  - {fileID: 8300000, guid: 15c321d12a4f44b8595eb4dee2eae9b0, type: 3}
-  - {fileID: 8300000, guid: 9870368c7100e4fb3b7d0abc2eeafbb9, type: 3}
+  - {fileID: 8300000, guid: 0b0e0fcee2c624eb296da2d55707bf6c, type: 3}
+  - {fileID: 8300000, guid: 22af8923f50c9476ea2e65f31844a05f, type: 3}
   targetVolume: 0.35
   fadeInTime: 2
   fadeOutTime: 2
