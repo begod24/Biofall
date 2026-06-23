@@ -20,8 +20,9 @@ Top-down зомби-шутер. Unity 6 (URP), namespaces `Biofall.Core / Gamepl
 - **Гранаты**: бросок по прицелу, инвентарь с ёмкостью, взрыв (AoE-урон + VFX), подбор гранат с дропа.
 - Стратегии огня вынесены в `IFireStrategy` (SingleFire и т.д.).
 
-## Враги (4 типа)
-- **Zombie** (база, 50 HP), **Runner** (быстрый), **Tank** (толстый), **Screamer** (крик — AoE-волна `ScreamWaveAttack`/`ScreamWaveVFX`). Данные в `EN_*` ScriptableObjects.
+## Враги (5 типов)
+- **Zombie** (база, 50 HP), **Runner** (быстрый), **Tank** (толстый), **Screamer** (крик — AoE-волна `ScreamWaveAttack`/`ScreamWaveVFX`), **Spitter/зонёр** (стационарный, moveSpeed 0 + дальний attackRange; плюётся кислотой). Данные в `EN_*` ScriptableObjects.
+- **Spitter** (`SpitterData`/`SpitAcidAttack`): по тому же animator-хуку "Attack", что и Screamer, роняет под игрока **лежащую кислотную лужу** (`AcidPool` + шейдер `Biofall/AcidPool` — едкая зелёная зона с DoT, server-авторитетный урон). Модель Screamer с болотным материалом `M_SpitterBody` (эмиссия). Префабы `Spitter`, `Decal_AcidPool`.
 - Погоня (гибрид: стиринг + NavMesh при препятствии), атака по событию анимации, смерть (анимация + звук).
 - Пул, спавн вне обзора камеры, boids-расталкивание, health-bar над врагом.
 - Реакция на попадание: кровь-брызги (партиклы), вспышка материала, отброс, **лужи крови-декали** (`BloodPool`). Дроп: патроны/аптечки/гранаты (шанс) + Bio Samples через `LootService` + `LootConfig`.
@@ -34,6 +35,7 @@ Top-down зомби-шутер. Unity 6 (URP), namespaces `Biofall.Core / Gamepl
 
 ## Волновой режим (WaveMode)
 - Отдельная сцена `SOLO/WaveMode` + `WaveSpawner` + `WaveHud` + `HUD_WaveMode.prefab`. Эндлесс-волны.
+- Набор врагов нарастает по волнам: зомби (всегда), раннеры с волны 2, **скримеры и Spitter'ы с волны 3** (Spitter — до 4 одновременно), танки с волны 4. Стартовые волны/капы настраиваются в `WaveSpawner`.
 
 ## Экономика и мета-прогрессия
 - Bio Samples: дроп с врагов → подбор → `CurrencyWallet` (HUD-счётчик) → при завершении миссии `RunSampleBanker` кладёт всё в банк.
@@ -50,7 +52,7 @@ Top-down зомби-шутер. Unity 6 (URP), namespaces `Biofall.Core / Gamepl
 - Мрачный URP post-process (vignette, color grading, bloom), туман, тёмный скайбокс. Дождь (партиклы, `WeatherFollow`). Игровая/меню музыка.
 
 ## Ключевые ассеты
-- Оружие: `WD_Pistol`, `WD_M4`, `WD_SG12`. Враги: `EN_Zombie`, `EN_Runner`, `EN_Tank`, `EN_Screamer`. Апгрейды: `UPG_*` (6 шт).
+- Оружие: `WD_Pistol`, `WD_M4`, `WD_SG12`. Враги: `EN_Zombie`, `EN_Runner`, `EN_Tank`, `EN_Screamer`, `EN_Spitter`. Апгрейды: `UPG_*` (6 шт).
 - Префабы: `Assets/Prefabs/{Weapon,Enemies,GameProps,Player,Net}/`. VFX: muzzle flash, tracer, blood splatter, blood pool decal, explosion, scream wave.
 - Аниматоры игрока (+rifle) и зомби.
 

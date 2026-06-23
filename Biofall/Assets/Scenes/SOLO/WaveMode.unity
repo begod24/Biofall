@@ -251,6 +251,7 @@ MonoBehaviour:
 
     TANKS<pos=70%>0
 
+    SPITTER<pos=70%>0
 
     TOTAL
     KILLS<pos=70%>0
@@ -5823,6 +5824,7 @@ MonoBehaviour:
   screamerPrefab: {fileID: 4032355617369223503, guid: 8435153f646ee4612be6bfeb6391a849, type: 3}
   runnerPrefab: {fileID: 7591542686537149779, guid: dd47aa351f9f34e3a96549f92cd58b78, type: 3}
   tankPrefab: {fileID: 2048965548630251414, guid: be639addb2c034de2a093cfc39dfb8fb, type: 3}
+  spitterPrefab: {fileID: 4032355617369223503, guid: 393295902afc4bae8965da4ed584b3ba, type: 3}
   baseZombies: 8
   zombieGrowth: 4
   maxConcurrent: 100
@@ -5835,6 +5837,8 @@ MonoBehaviour:
   maxRunners: 30
   tankStartWave: 4
   maxTanks: 6
+  spitterStartWave: 3
+  maxSpitters: 4
   minRadius: 16
   maxRadius: 28
   spawnInterval: 0.15
@@ -16153,6 +16157,9 @@ MonoBehaviour:
     countLabel: {fileID: 0}
   - label: TANKS
     data: {fileID: 11400000, guid: 0d13d5c8a1b014d1ba58ef362ee02447, type: 2}
+    countLabel: {fileID: 0}
+  - label: SPITTER
+    data: {fileID: 11400000, guid: 386658b133e64b40bef2609c7a3c665d, type: 2}
     countLabel: {fileID: 0}
   summaryText: {fileID: 184698855}
   valueColumnPercent: 70
