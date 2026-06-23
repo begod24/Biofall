@@ -842,7 +842,8 @@ PlayerSettings:
   webGLCloseOnQuit: 0
   webWasm2023: 0
   webEnableSubmoduleStrippingCompatibility: 0
-  scriptingDefineSymbols: {}
+  scriptingDefineSymbols:
+    Standalone: 
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:
@@ -941,11 +942,11 @@ PlayerSettings:
   captureStartupLogs: {}
   activeInputHandler: 1
   windowsGamepadBackendHint: 0
-  cloudProjectId: ad1c68f3-fac4-45dd-af1e-caec34a98b06
+  cloudProjectId: d7c26b42-3f54-4ea6-a75e-31df02344b08
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
   projectName: Biofall
-  organizationId: bekbolat24
+  organizationId: begod24
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   hmiLoadingImage: {fileID: 0}
