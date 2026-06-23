@@ -142,9 +142,29 @@ namespace Biofall.Gameplay
             _nextFireTime = Time.time + 1f / Mathf.Max(0.01f, data.fireRate);
 
             Vector3 origin = muzzle != null ? muzzle.position : transform.position;
-            Vector3 direction = GetAimDirection(origin);
-            Quaternion rotation = Quaternion.LookRotation(direction);
+            Vector3 baseDir = GetAimDirection(origin);
 
+            // One trigger pull = one round, but it can spit several pellets in a cone (shotgun).
+            int pellets = Mathf.Max(1, data.pelletsPerShot);
+            for (int i = 0; i < pellets; i++)
+            {
+                Vector3 dir = pellets > 1 ? ApplySpread(baseDir, data.spreadAngle) : baseDir;
+                FirePellet(origin, dir);
+            }
+
+            // Muzzle flash, SFX, animation and network FX fire once per shot, not per pellet.
+            SpawnFromPool(data.muzzleFlashPrefab, origin, Quaternion.LookRotation(baseDir));
+            if (NetSession.InCoop && _coopPlayer != null && _weaponController != null)
+                _coopPlayer.BroadcastFireFx(_weaponController.ActiveSlot, origin, baseDir);
+
+            if (data.shootSfx != null) audioSource.PlayOneShot(data.shootSfx);
+            PlayAnimTrigger(FireId);
+            EventBus.Publish(new WeaponFired(origin, baseDir));
+            return true;
+        }
+
+        private void FirePellet(Vector3 origin, Vector3 direction)
+        {
             if (Physics.Raycast(origin, direction, out RaycastHit hit, data.range, hitMask, QueryTriggerInteraction.Ignore))
             {
                 if (NetSession.InCoop)
@@ -159,14 +179,15 @@ namespace Biofall.Gameplay
                 }
             }
 
-            PlayFireFx(origin, rotation);
-            if (NetSession.InCoop && _coopPlayer != null && _weaponController != null)
-                _coopPlayer.BroadcastFireFx(_weaponController.ActiveSlot, origin, direction);
+            SpawnTracer(origin, Quaternion.LookRotation(direction));
+        }
 
-            if (data.shootSfx != null) audioSource.PlayOneShot(data.shootSfx);
-            PlayAnimTrigger(FireId);
-            EventBus.Publish(new WeaponFired(origin, direction));
-            return true;
+        // Random horizontal deflection inside the spread cone (top-down, so spread stays on the XZ plane).
+        private static Vector3 ApplySpread(Vector3 direction, float spreadAngle)
+        {
+            if (spreadAngle <= 0f) return direction;
+            float half = spreadAngle * 0.5f;
+            return Quaternion.AngleAxis(Random.Range(-half, half), Vector3.up) * direction;
         }
 
         private void PlayFireFx(Vector3 origin, Quaternion rotation)

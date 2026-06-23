@@ -27,6 +27,12 @@ namespace Biofall.Gameplay
         [Tooltip("How long the trigger must be held before burst-firing kicks in (tap vs hold).")]
         public float holdToBurst = 0.18f;
 
+        [Header("Spread (shotgun)")]
+        [Tooltip("Pellets fired per shot. 1 = a normal single-projectile weapon.")]
+        public int pelletsPerShot = 1;
+        [Tooltip("Total cone angle (degrees) the pellets are randomly spread across. 0 = no spread.")]
+        public float spreadAngle = 0f;
+
         [Header("Bullet (visual tracer)")]
         public GameObject bulletPrefab;
         public float bulletSpeed = 80f;

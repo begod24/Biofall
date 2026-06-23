@@ -5,7 +5,7 @@ namespace Biofall.Gameplay
     [RequireComponent(typeof(PlayerInput))]
     public sealed class WeaponController : MonoBehaviour
     {
-        [Tooltip("Slot order: 0 = pistol (key 1), 1 = M4 (key 2).")]
+        [Tooltip("Slot order: 0 = pistol (key 1), 1 = M4 (key 2), 2 = SG-12 (key 3).")]
         [SerializeField] private Weapon[] weapons;
         [SerializeField] private Animator animator;
 
@@ -50,6 +50,7 @@ namespace Biofall.Gameplay
             int slot = _input.WeaponSlot;
             if (slot == 1) Equip(0);
             else if (slot == 2) Equip(1);
+            else if (slot == 3) Equip(2);
         }
 
         private void Equip(int index)
@@ -62,7 +63,8 @@ namespace Biofall.Gameplay
 
             if (animator != null)
             {
-                animator.SetInteger(WeaponId, index == 1 ? 1 : 0);
+                // Pistol (slot 0) uses the one-handed pose; every long gun (M4, SG-12) uses the rifle pose.
+                animator.SetInteger(WeaponId, index == 0 ? 0 : 1);
                 animator.ResetTrigger(FireId);
                 animator.ResetTrigger(ReloadId);
             }

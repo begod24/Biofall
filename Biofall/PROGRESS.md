@@ -15,8 +15,8 @@ Top-down зомби-шутер. Unity 6 (URP), namespaces `Biofall.Core / Gamepl
 - Фонарик (конус по направлению прицела). Смерть: анимация + блок управления + Game Over.
 
 ## Оружие и бой
-- Переключение **1 = пистолет, 2 = M4**, раздельные патроны, HUD показывает активное.
-- Пистолет — одиночный; **M4 — клик одиночный, зажатие очереди**. Хитскан по прицелу, трейсер-пуля, muzzle flash из пула, звуки выстрела/перезарядки.
+- Переключение **1 = пистолет, 2 = M4, 3 = SG-12 (дробовик)**, раздельные патроны, HUD показывает активное.
+- Пистолет — одиночный; **M4 — клик одиночный, зажатие очереди**; **SG-12 — одиночный с разбросом** (8 дробин конусом за 1 патрон, поля `pelletsPerShot`/`spreadAngle` в `WeaponData`, цикл рейкастов в `Weapon.TryFire`). Хитскан по прицелу, трейсер-пуля, muzzle flash из пула, звуки выстрела/перезарядки.
 - **Гранаты**: бросок по прицелу, инвентарь с ёмкостью, взрыв (AoE-урон + VFX), подбор гранат с дропа.
 - Стратегии огня вынесены в `IFireStrategy` (SingleFire и т.д.).
 
@@ -50,9 +50,9 @@ Top-down зомби-шутер. Unity 6 (URP), namespaces `Biofall.Core / Gamepl
 - Мрачный URP post-process (vignette, color grading, bloom), туман, тёмный скайбокс. Дождь (партиклы, `WeatherFollow`). Игровая/меню музыка.
 
 ## Ключевые ассеты
-- Оружие: `WD_Pistol`, `WD_M4`. Враги: `EN_Zombie`, `EN_Runner`, `EN_Tank`, `EN_Screamer`. Апгрейды: `UPG_*` (6 шт).
+- Оружие: `WD_Pistol`, `WD_M4`, `WD_SG12`. Враги: `EN_Zombie`, `EN_Runner`, `EN_Tank`, `EN_Screamer`. Апгрейды: `UPG_*` (6 шт).
 - Префабы: `Assets/Prefabs/{Weapon,Enemies,GameProps,Player,Net}/`. VFX: muzzle flash, tracer, blood splatter, blood pool decal, explosion, scream wave.
 - Аниматоры игрока (+rifle) и зомби.
 
 ## Дальше (идеи)
-Счёт/рекорды в WaveMode, больше оружия (Shotgun/AR), больше миссий, баланс волн, полировка co-op (squad HUD, сетевой лаг), реальный арт-уровень вместо greybox.
+Счёт/рекорды в WaveMode, больше оружия (AR и т.д.), больше миссий, баланс волн, полировка co-op (squad HUD, сетевой лаг), реальный арт-уровень вместо greybox.

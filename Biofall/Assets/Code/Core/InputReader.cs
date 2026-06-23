@@ -49,6 +49,7 @@ namespace Biofall.Core
 
             WeaponSlot = keyboard.digit1Key.wasPressedThisFrame ? 1
                        : keyboard.digit2Key.wasPressedThisFrame ? 2
+                       : keyboard.digit3Key.wasPressedThisFrame ? 3
                        : 0;
         }
     }
