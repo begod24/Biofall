@@ -22,7 +22,7 @@ Top-down зомби-шутер. Unity 6 (URP), namespaces `Biofall.Core / Gamepl
 
 ## Враги (5 типов)
 - **Zombie** (база, 50 HP), **Runner** (быстрый), **Tank** (толстый), **Screamer** (крик — AoE-волна `ScreamWaveAttack`/`ScreamWaveVFX`), **Spitter/зонёр** (стационарный, moveSpeed 0 + дальний attackRange; плюётся кислотой). Данные в `EN_*` ScriptableObjects.
-- **Spitter** (`SpitterData`/`SpitAcidAttack`): по тому же animator-хуку "Attack", что и Screamer, роняет под игрока **лежащую кислотную лужу** (`AcidPool` + шейдер `Biofall/AcidPool` — едкая зелёная зона с DoT, server-авторитетный урон). Модель Screamer с болотным материалом `M_SpitterBody` (эмиссия). Префабы `Spitter`, `Decal_AcidPool`.
+- **Spitter** (`SpitterData`/`SpitAcidAttack`): по тому же animator-хуку "Attack", что и Screamer, **плюётся летящим глобом** (`AcidProjectile`/`Acid_Projectile.prefab` — светящийся зелёный шар, летит дугой от пасти в игрока), который при попадании разливается в **лежащую кислотную лужу** (`AcidPool` + шейдер `Biofall/AcidPool` — едкая зелёная зона с DoT, server-авторитетный урон, ложится на пол по ногам цели). Модель Screamer с болотным материалом `M_SpitterBody` (эмиссия), глоб — `M_AcidGlob`. Префабы `Spitter`, `Decal_AcidPool`, `Acid_Projectile`. Всё data-driven через `EN_Spitter` — одинаково во всех режимах.
 - Погоня (гибрид: стиринг + NavMesh при препятствии), атака по событию анимации, смерть (анимация + звук).
 - Пул, спавн вне обзора камеры, boids-расталкивание, health-bar над врагом.
 - Реакция на попадание: кровь-брызги (партиклы), вспышка материала, отброс, **лужи крови-декали** (`BloodPool`). Дроп: патроны/аптечки/гранаты (шанс) + Bio Samples через `LootService` + `LootConfig`.

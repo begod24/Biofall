@@ -26,6 +26,17 @@ namespace Biofall.Gameplay
         [Tooltip("Metres ahead of the target's facing the spit leads (0 = lands right on the player).")]
         public float aimLead = 0f;
 
+        [Header("Spit projectile (visible glob)")]
+        [Tooltip("Pooled acid glob lobbed at the player; it bursts into the acid pool on impact. " +
+                 "If null, the pool is dropped straight at the target instead.")]
+        public GameObject spitProjectilePrefab;
+        [Tooltip("Seconds the glob takes to reach the target.")]
+        public float spitFlightTime = 0.8f;
+        [Tooltip("Peak height (metres) of the lob arc.")]
+        public float spitArcHeight = 2.5f;
+        [Tooltip("Height above the Spitter's feet the glob launches from (mouth height).")]
+        public float spitOriginHeight = 1.7f;
+
         [Header("Spit SFX")]
         public AudioClip spitSfx;
         [Range(0f, 1f)] public float spitVolume = 0.7f;

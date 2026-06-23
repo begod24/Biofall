@@ -51,5 +51,9 @@ MonoBehaviour:
   acidTickInterval: 0.5
   spitWindup: 0.5
   aimLead: 0
+  spitProjectilePrefab: {fileID: 4400000000000000001, guid: 0bbb3f244c73846c08d7fb33c209680c, type: 3}
+  spitFlightTime: 0.8
+  spitArcHeight: 2.5
+  spitOriginHeight: 1.7
   spitSfx: {fileID: 8300000, guid: 62a0b4a3f9f2148bfaee89f465f576c9, type: 3}
   spitVolume: 0.7

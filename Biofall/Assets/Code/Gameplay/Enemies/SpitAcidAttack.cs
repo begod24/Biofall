@@ -90,6 +90,26 @@ namespace Biofall.Gameplay
 
             if (PoolService.Instance == null) return;
 
+            // Lob a visible glob if we have one — it flies in an arc and bursts into the acid pool on
+            // impact (so you can see the spit coming). Falls back to dropping the pool directly.
+            if (data.spitProjectilePrefab != null)
+            {
+                Vector3 origin = (mouth != null && mouth != _tf)
+                    ? mouth.position
+                    : _tf.position + Vector3.up * data.spitOriginHeight;
+                GameObject globGo = PoolService.Instance.Spawn(data.spitProjectilePrefab, origin, Quaternion.identity);
+                if (globGo != null && globGo.TryGetComponent(out AcidProjectile glob))
+                {
+                    glob.Launch(origin, landing, data);
+                    return;
+                }
+            }
+
+            SpawnPoolDirect(landing);
+        }
+
+        private void SpawnPoolDirect(Vector3 landing)
+        {
             if (data.spitVfxPrefab != null)
                 PoolService.Instance.Spawn(data.spitVfxPrefab, landing + Vector3.up * 0.05f, Quaternion.identity);
 
