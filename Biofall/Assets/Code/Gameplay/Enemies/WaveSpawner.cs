@@ -13,6 +13,7 @@ namespace Biofall.Gameplay
         [SerializeField] private GameObject screamerPrefab;
         [SerializeField] private GameObject runnerPrefab;
         [SerializeField] private GameObject tankPrefab;
+        [SerializeField] private GameObject spitterPrefab;
 
         [Header("Waves")]
         [SerializeField] private int baseZombies = 8;
@@ -36,6 +37,10 @@ namespace Biofall.Gameplay
         [Header("Tanks (slow, tough)")]
         [SerializeField] private int tankStartWave = 4;
         [SerializeField] private int maxTanks = 6;
+
+        [Header("Spitters (stationary acid turret)")]
+        [SerializeField] private int spitterStartWave = 3;
+        [SerializeField] private int maxSpitters = 4;
 
         [Header("Spawn placement")]
         [SerializeField] private float minRadius = 16f;
@@ -75,8 +80,10 @@ namespace Biofall.Gameplay
                     ? Mathf.Min((CurrentWave - runnerStartWave + 1) * runnerGrowth, maxRunners) : 0;
                 int remT = (tankPrefab != null && CurrentWave >= tankStartWave)
                     ? Mathf.Min(CurrentWave - tankStartWave + 1, maxTanks) : 0;
+                int remSp = (spitterPrefab != null && CurrentWave >= spitterStartWave)
+                    ? Mathf.Min(CurrentWave - spitterStartWave + 1, maxSpitters) : 0;
 
-                while (remZ + remS + remR + remT > 0)
+                while (remZ + remS + remR + remT + remSp > 0)
                 {
                     var mgr = EnemyManager.Instance;
                     if (mgr != null && mgr.ActiveCount < maxConcurrent)
@@ -88,12 +95,13 @@ namespace Biofall.Gameplay
                             continue;
                         }
 
-                        int total = remZ + remS + remR + remT;
+                        int total = remZ + remS + remR + remT + remSp;
                         int r = Random.Range(0, total);
                         Enemy spawned;
                         if (r < remZ) { spawned = mgr.Spawn(pos, Quaternion.identity); remZ--; }
                         else if (r < remZ + remR) { spawned = mgr.Spawn(runnerPrefab, pos, Quaternion.identity); remR--; }
                         else if (r < remZ + remR + remT) { spawned = mgr.Spawn(tankPrefab, pos, Quaternion.identity); remT--; }
+                        else if (r < remZ + remR + remT + remSp) { spawned = mgr.Spawn(spitterPrefab, pos, Quaternion.identity); remSp--; }
                         else { spawned = mgr.Spawn(screamerPrefab, pos, Quaternion.identity); remS--; }
 
                         if (chaseFromSpawn && spawned != null) spawned.Aggro();
